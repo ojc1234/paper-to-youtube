@@ -156,6 +156,10 @@ def describe(name, inp):
             break
     else:
         st, text = None, None
+    # 읽기·탐색(ls/cat/grep/read_file)은 단계를 앞당기지 않는다 → 남은 시간이 갑자기 줄지 않게
+    looking = name in ("read_file", "search_files") or (cmd and re.match(r"\s*(cd [^&;]+&&\s*)?(ls|cat|head|tail|grep|find|which|for c in|wc|echo|file|pdfinfo)\b", cmd))
+    if looking and st not in (None, "read"):
+        st, text = None, None
     if name in ("write_file",):
         what = f"파일 작성: {Path(path).name}" if path else "파일 작성"
     elif name in ("patch",):
@@ -331,6 +335,7 @@ def run_job(job):
             nonlocal buf
             txt = buf.strip()
             buf = ""
+            txt = re.sub(r"<[｜|][^>]*>", "", txt).strip()  # 모델 내부 토큰 제거
             if txt and not txt.startswith("RESULT"):
                 rep.ev("say", txt[:600])
 

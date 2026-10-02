@@ -41,7 +41,9 @@ log edge-tts / python tools
 uv tool install -q edge-tts 2>/dev/null || uv tool upgrade edge-tts || true
 uv tool install -q playwright 2>/dev/null || true
 log Chromium
-"$HOME/.local/share/uv/tools/playwright/bin/playwright" install chromium 2>&1 | tail -2 || uv run --with playwright playwright install chromium
+# headless-shell 빌드로는 YouTube Studio 업로드가 막혀서 전체 Chromium(channel="chromium") 을 쓴다
+"$HOME/.local/share/uv/tools/playwright/bin/playwright" install chromium --no-shell 2>&1 | tail -2 \
+  || "$HOME/.local/share/uv/tools/playwright/bin/playwright" install chromium 2>&1 | tail -2
 
 log kit venvs
 for p in paper-slides-to-video paper-to-beamer; do (cd "$KIT/skills/$p" && uv sync -q) || true; done
