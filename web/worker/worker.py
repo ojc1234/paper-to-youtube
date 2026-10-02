@@ -185,10 +185,12 @@ PROMPT = """너는 무인으로 동작하는 논문 해설 영상 제작기다. 
 
 ## 입력
 - 작업 폴더(= dir_path): {d}
-- 사용자가 올린 PDF: {d}/source.pdf  (arXiv 가 아닐 수 있다. arXiv 검색/다운로드 단계는 건너뛴다)
+- 논문 PDF: {d}/source.pdf  ({origin})
+- 논문 정보(제목·저자·arXiv 번호·라이선스): {d}/paper.json  ← 설명란에 그대로 사용
 - 추출한 본문 텍스트: {d}/paper.txt  ← 먼저 이것을 read_file 로 읽어라
 - PDF 에서 뽑은 그림: {d}/slides-beamer/figures/*.png  (목록: {figs})
-- 요청자 이름: {name}
+- 요청자가 검색한 이름: {name}  (이 이름으로 찾은 논문이다. 영상 설명란 첫 줄에 "'{name}' 검색으로 고른 논문" 이라고 밝힌다)
+{tex}
 - 공개 범위: {privacy}
 
 ## 따라야 할 절차
@@ -241,9 +243,33 @@ print(json.dumps({'pages':doc.page_count,'title':meta.get('title') or '','author
     r = subprocess.run(["uv", "run", "--with", "pymupdf", "python", "-c", code, str(d)],
                        capture_output=True, text=True, encoding="utf-8", timeout=300)
     info = json.loads(r.stdout.strip().splitlines()[-1])
-    pj = {"arxiv_id": "", "title": info["title"] or job["filename"], "authors": [info["author"]] if info["author"] else [],
-          "summary": "", "url": "", "dir_name": d.name, "dir_path": str(d), "license": "unknown (user-provided PDF)",
-          "source": "web-upload", "requester": job.get("name", "")}
+    paper = job.get("paper") or {}
+    info["arxiv"] = paper.get("arxiv_id", "")
+    info["tex"] = False
+    lic = "unknown (user-provided PDF)"
+    if info["arxiv"]:
+        try:  # arXiv 논문이면 라이선스 확인 + TeX 원본 시도 (그림·수식이 더 정확)
+            html = urllib.request.urlopen(f"https://arxiv.org/abs/{info['arxiv']}", timeout=30).read().decode("utf-8", "replace")
+            m = re.search(r"creativecommons\.org/licenses/([^\"']+)", html)
+            lic = f"CC {m.group(1).strip('/').upper().replace('/', ' ')}" if m else "arXiv nonexclusive-distrib 1.0"
+        except Exception:
+            lic = "arXiv (확인 실패)"
+        try:
+            g = subprocess.run([sys.executable, str(SK / "paper-to-youtube/scripts/get_source.py"), info["arxiv"], "--output", str(d)],
+                               capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=300)
+            info["tex"] = (d / "paper_src").exists() and any((d / "paper_src").rglob("*.tex"))
+        except Exception:
+            pass
+        if not info["tex"]:
+            for tgz in (d / "_download").glob("*.tar.gz") if (d / "_download").exists() else []:
+                (d / "paper_src").mkdir(exist_ok=True)
+                subprocess.run(["tar", "-xzf", str(tgz), "-C", str(d / "paper_src")], capture_output=True)
+            info["tex"] = (d / "paper_src").exists() and any((d / "paper_src").rglob("*.tex"))
+    pj = {"arxiv_id": info["arxiv"], "title": paper.get("title") or info["title"] or job["filename"],
+          "authors": paper.get("authors") or ([info["author"]] if info["author"] else []),
+          "summary": paper.get("summary", ""), "published": paper.get("published", ""),
+          "url": paper.get("url", ""), "dir_name": d.name, "dir_path": str(d), "license": lic,
+          "source": "arxiv-search" if info["arxiv"] else "web-upload", "requester": job.get("name", "")}
     (d / "paper.json").write_text(json.dumps(pj, ensure_ascii=False, indent=2), "utf-8")
     return info
 
@@ -256,12 +282,20 @@ def run_job(job):
     try:
         rep.stage("read", "PDF 를 받아 본문 텍스트와 그림을 뽑는 중")
         info = prepare(job, d)
-        rep.ev("explain", f"PDF {info['pages']}쪽에서 본문과 그림 {len(info['figs'])}장을 뽑았어요. 이제 Hermes 에게 일을 맡깁니다.")
-        prompt = PROMPT.format(d=d.as_posix(), sk=SK.as_posix(), name=job.get("name") or "(없음)",
+        rep.ev("explain", f"PDF {info['pages']}쪽에서 본문과 그림 {len(info['figs'])}장을 뽑았어요."
+               + (" arXiv TeX 원본도 받았어요." if info.get("tex") else "") + " 이제 Hermes 에게 일을 맡깁니다.")
+        origin = (f"arXiv:{info['arxiv']} 에서 받은 PDF. 이미 받았으니 다시 검색/다운로드하지 않는다"
+                  if info["arxiv"] else "사용자가 직접 올린 PDF. arXiv 검색/다운로드 단계는 건너뛴다")
+        tex = (f"- TeX 원본: {d.as_posix()}/paper_src/ (있으면 수식·그림은 여기서 가져온다. 그림이 .pdf 면 pdftoppm -png -r 200 -singlefile 로 변환)"
+               if info.get("tex") else "")
+        prompt = PROMPT.format(d=d.as_posix(), sk=SK.as_posix(), name=job.get("name") or "(없음)", origin=origin, tex=tex,
                                privacy=job.get("privacy", "PUBLIC"), figs=", ".join(info["figs"]) or "없음")
         pf = d / "hermes_prompt.md"
         pf.write_text(prompt, "utf-8")
-        rep.ev("explain", "Hermes 에게 준 입력: ① 작업 폴더와 PDF 본문 ② 키트의 절차서(SKILL.md) 경로 ③ '질문하지 말고 끝까지, 공개로 업로드' 라는 규칙. 지금부터 Hermes 가 스스로 판단해서 도구를 호출합니다.")
+        pp = job.get("paper") or {}
+        rep.ev("explain", "Hermes 에게 준 입력: "
+               + (f"① '{job.get('name')}' 로 찾은 논문 「{pp.get('title', '')}」(arXiv:{pp.get('arxiv_id')})의 PDF·본문·그림 " if pp else "① 올린 PDF 의 본문과 그림 ")
+               + f"② 키트의 절차서(SKILL.md) 경로 ③ '질문하지 말고 끝까지, {job.get('privacy', 'PUBLIC')} 로 업로드' 라는 규칙. 지금부터 Hermes 가 스스로 판단해서 도구를 호출합니다.")
         cmd = ([sys.executable] if HERMES.endswith(".py") else []) + [HERMES, "chat", "--query-file", str(pf), "--format", "stream-json", "--yolo",
                "--max-turns", "220", "-t", "terminal,file"]
         if PROVIDER:

@@ -36,22 +36,25 @@ button:disabled{opacity:.5;cursor:default}
 .tip{margin-top:10px;padding:12px;border-radius:10px;background:#1b2030;color:#cfd6e6;font-size:14px;min-height:46px}
 .result a{color:#7fb2ff;font-size:17px;font-weight:700}
 .hidden{display:none}
+.paper{background:#0c0e14;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:8px 0}
+.paper button{white-space:nowrap}
 </style>
 </head>
 <body>
 <header>
   <h1>📄 논문 → <span>▶ YouTube</span></h1>
-  <div class="sub">이름으로 관련 영상을 찾거나, PDF 를 올리면 Hermes 가 한국어 해설 영상을 만들어 유튜브에 올려 줍니다.</div>
+  <div class="sub">이름(저자·주제)을 넣으면 관련 논문을 찾고, 고른 논문으로 Hermes 가 한국어 해설 영상을 만들어 유튜브에 올려 줍니다.</div>
 </header>
 <main>
   <section class="card">
-    <h2>🔎 이름으로 유튜브 찾기</h2>
-    <form id="sf" class="row"><input type="text" id="q" placeholder="이름 또는 주제 (예: 바이오블록스, 오지철, 단백질)" required><button>검색</button></form>
+    <h2>🔎 이름으로 논문 찾기 → 유튜브 영상 만들기 <span id="ws" class="badge">작업 PC 확인 중…</span></h2>
+    <form id="sf" class="row"><input type="text" id="q" placeholder="저자 이름 또는 주제 (예: Geoffrey Hinton, 생물교육, 단백질 도킹)" required>
+      <button>논문 찾기</button><button type="button" id="auto" style="background:#3b4255">가장 관련 높은 논문으로 바로 만들기</button></form>
     <div id="sr"></div>
   </section>
 
   <section class="card">
-    <h2>🎬 PDF 로 영상 만들기 <span id="ws" class="badge">작업 PC 확인 중…</span></h2>
+    <h2>📎 (선택) 내 PDF 로 영상 만들기</h2>
     <form id="jf">
       <label class="drop" id="drop">PDF 를 여기로 끌어 놓거나 눌러서 선택<br><small id="fn"></small>
         <input type="file" id="pdf" accept="application/pdf" hidden></label>
@@ -82,7 +85,30 @@ const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 const fmt=s=>{s=Math.max(0,Math.round(s));const m=Math.floor(s/60);return m?`${m}분 ${String(s%60).padStart(2,"0")}초`:`${s}초`};
 
 // ---------- 검색
-$("#sf").onsubmit=async e=>{e.preventDefault();$("#sr").innerHTML='<p class="sub">찾는 중…</p>';
+let lastPapers=[],lastQ="";
+async function findPapers(){lastQ=$("#q").value.trim();$("#sr").innerHTML='<p class="sub">arXiv 에서 논문 찾는 중… (몇 초 걸려요)</p>';
+  const res=await fetch("/api/papers?q="+encodeURIComponent(lastQ));const r=await res.json();
+  if(!res.ok){$("#sr").innerHTML=`<p class="sub">${esc(r.detail||"검색 실패")}</p>`;return null}
+  lastPapers=r.papers;
+  const vlink=v=>`<a href="${esc(v.url)}" target="_blank" class="u">${esc(v.url)}</a>`;
+  let h=r.english!==r.query?`<p class="sub">영어로 바꿔서 검색: <b>${esc(r.english)}</b></p>`:"";
+  if(r.made.length)h+=`<h3>이미 만든 영상</h3>`+r.made.map(v=>`<div class="paper"><b>${esc(v.title)}</b><br>${vlink(v)}${v.shorts?` · 쇼츠 ${vlink({url:v.shorts})}`:""}</div>`).join("");
+  h+=`<h3>찾은 논문 (${r.papers.length})</h3>`+(r.papers.length?r.papers.map((p,i)=>`<div class="paper">
+    <div class="row" style="justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:260px">
+    ${p.author_match?'<span class="badge ok">저자 일치</span> ':""}<a href="${esc(p.url)}" target="_blank" style="color:var(--fg);font-weight:700">${esc(p.title)}</a>
+    <div class="sub">${esc(p.authors.slice(0,5).join(", "))}${p.authors.length>5?" 외":""} · ${esc(p.published)} · arXiv:${esc(p.arxiv_id)}</div>
+    <div class="sub" style="font-size:13px">${esc(p.summary.slice(0,260))}…</div></div>
+    <div>${p.video?`<span class="badge ok">영상 있음</span><br>${vlink(p.video)}`:`<button onclick="make(${i})">이 논문으로 영상 만들기</button>`}</div></div></div>`).join(""):'<p class="sub">찾은 논문이 없어요. 영어 이름이나 다른 주제어로 해 보세요.</p>');
+  $("#sr").innerHTML=h;return r}
+async function make(i){const p=lastPapers[i];if(!p)return;
+  if(!confirm(`「${p.title}」\n이 논문으로 영상을 만들어 유튜브에 공개로 올릴까요? (약 10~30분)`))return;
+  const res=await fetch("/api/jobs/arxiv",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({arxiv_id:p.arxiv_id,name:lastQ,paper:p})});
+  const j=await res.json();if(!res.ok){alert(j.detail||"실패");return}
+  location.hash=j.id;watch(j.id);loadJobs();$("#jc").scrollIntoView({behavior:"smooth"})}
+$("#sf").onsubmit=e=>{e.preventDefault();findPapers()};
+$("#auto").onclick=async()=>{if(!$("#q").value.trim())return $("#q").focus();const r=await findPapers();if(!r)return;
+  const i=lastPapers.findIndex(p=>!p.video);if(i<0)return alert("새로 만들 논문이 없어요 (전부 영상이 있어요)");make(i)};
+async function oldSearch(){
   const r=await (await fetch("/api/search?q="+encodeURIComponent($("#q").value))).json();
   const card=(v,mine)=>{const id=(v.url.match(/(?:v=|youtu\.be\/|shorts\/)([\w-]{11})/)||[])[1];
     return `<div class="v ${mine?"mine":""}">${id?`<img src="https://i.ytimg.com/vi/${id}/mqdefault.jpg" loading="lazy">`:""}<div>
@@ -132,6 +158,7 @@ function watch(id){$("#jc").classList.remove("hidden");$("#jid").textContent=id;
   es.onmessage=m=>{const e=JSON.parse(m.data);
     if(e.eta!=null){state.eta=e.eta;state.etaAt=e.t||Date.now()/1000}
     if(e.stage)state.stage=e.stage;if(e.progress!=null)state.progress=e.progress;
+    if(e.type==="state"&&e.paper){$("#jid").textContent=e.id+" · "+(e.paper.title||"").slice(0,60)}
     if(e.type==="state"){Object.assign(state,{status:e.status,stage:e.stage||state.stage,progress:e.progress??state.progress});if(e.status==="queued")line("say","작업 PC 가 이 작업을 가져가길 기다리고 있어요.",e.t)}
     else if(e.type==="started"){state.status="running";state.started=e.t;line("stg","🚀 "+esc(e.text),e.t)}
     else if(e.type==="stage"){line("stg","▶ "+esc(e.stage)+(e.text?" — "+esc(e.text):""),e.t)}
