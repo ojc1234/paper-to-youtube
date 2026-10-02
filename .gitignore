@@ -6,3 +6,4 @@ web/server/data/
 web/worker/worker.env
 web/worker/stage_stats.json
 *.zip
+server.env
