@@ -1,0 +1,6 @@
+[project]
+name = "paper-to-beamer"
+version = "0.1.0"
+description = "Packaged SUSTech Beamer template and paper-to-slides workflow"
+requires-python = ">=3.10"
+dependencies = []

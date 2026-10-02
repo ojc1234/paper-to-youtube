@@ -1,0 +1,168 @@
+\input{preamble_ko}
+
+\title[GNN 사후선택 논문 리뷰]{디코더를 돌리지 않고 실패를 예측한다:\\ 그래프 신경망 사후선택}
+\subtitle{Graph Neural Post-selection for Quantum Error Correction}
+\author[Carty et al.]{Conor Carty, Tamas Noszko, Joschka Roffe, Roberto Bondesan}
+\institute[arXiv]{arXiv:2610.00504}
+\setsource{arXiv}{2026}
+\setdomains{\domaintag{양자 오류 정정}\domaintag{그래프 신경망}\domaintag{qLDPC 코드}}
+\setpresenter{양자컴퓨팅 논문 리뷰}
+\setvenue{YouTube}
+\date{2026-10-02}
+
+\begin{document}
+
+\begin{frame}[plain]
+  \titlepage
+\end{frame}
+
+\begin{frame}{오늘의 논문 한눈에 보기}
+  \vspace{-0.6em}
+  \twopane{%
+    {\tocdense\footnotesize\tableofcontents[hideallsubsections]}
+  }{%
+    \begin{block}{핵심 숫자}
+      \begin{itemize}\setlength{\itemsep}{0.15em}\footnotesize
+        \item 샷의 \shl{90\%}만 남기면 논리 오류율 \shl{약 3700배}{} 감소 ([[72,12,6]] BB 코드)
+        \item {[[144,12,12]]} BB 코드는 \shl{약 740배}{} 감소
+        \item 디코더를 \shl{추가로 실행하지 않음}
+      \end{itemize}
+    \end{block}
+    \tightgap
+    \begin{callout}[한 줄 요약]
+      신드롬만 보고 ``이번 샷은 실패할 것 같다''를 GNN이 미리 판단해 버린다.
+    \end{callout}
+  }
+\end{frame}
+
+% ============================ 1 ============================
+\renewcommand{\secblurb}{오류 정정만으로는 부족할 때, 의심스러운 결과를 버리는 전략}
+\section{왜 중요한가}
+
+\begin{frame}{양자 오류 정정의 기본 흐름}
+  \begin{itemize}
+    \item 논리 큐비트 하나를 \keyword{여러 물리 큐비트}에 나눠 저장
+    \item 주기적으로 \shl{신드롬(syndrome)}을 측정해 오류의 흔적을 수집
+    \item \shl{디코더}가 신드롬을 보고 어떤 오류가 났는지 추정해 되돌림
+    \item 디코더가 틀리면 \hlbox{논리 오류} 발생
+  \end{itemize}
+  \deckgap
+  \begin{callout}[문제]
+    물리 오류율이 아무리 낮아도 디코더가 틀리는 샷은 남는다.
+  \end{callout}
+\end{frame}
+
+\begin{frame}{사후선택(post-selection)이란?}
+  \begin{itemize}
+    \item 실행 결과(샷) 중 \keyword{실패할 가능성이 높은 샷}을 버리는 방법
+    \item 버린 만큼 처리량은 줄지만, 남은 샷의 \shl{신뢰도는 크게 상승}
+    \item 기존 대표 방법: \shl{complementary gap}
+    \item 단점: 판단을 위해 디코더를 \hlbox{여러 번 추가 실행}해야 함
+  \end{itemize}
+\end{frame}
+
+% ============================ 2 ============================
+\renewcommand{\secblurb}{신드롬을 그래프로 보고, 신경망이 실패 확률을 예측}
+\section{핵심 아이디어}
+
+\begin{frame}{그래프 신경망 사후선택기}
+  \centering
+  \begin{tikzpicture}[node distance=1.2cm, every node/.style={font=\small},
+      box/.style={draw=emph, very thick, rounded corners, minimum width=2.6cm, minimum height=1.1cm, align=center, fill=white}]
+    \node[box] (syn) {신드롬\\(검사 결과)};
+    \node[box, right=1.0cm of syn] (bp) {BP 사후확률\\(qLDPC일 때)};
+    \node[box, below right=0.5cm and 0.0cm of syn, xshift=0.6cm] (gnn) {\textbf{그래프 신경망}};
+    \node[box, right=1.2cm of gnn, fill=sustechgold] (out) {실패 확률\\예측};
+    \node[box, right=1.0cm of out, minimum width=2.2cm] (dec) {유지 / 폐기};
+    \draw[-latex, very thick] (syn) -- (gnn);
+    \draw[-latex, very thick] (bp) -- (gnn);
+    \draw[-latex, very thick] (gnn) -- (out);
+    \draw[-latex, very thick] (out) -- (dec);
+  \end{tikzpicture}
+  \deckgap
+  \begin{itemize}\small
+    \item 입력은 \shl{신드롬}과, qLDPC 코드의 경우 이미 계산된 \shl{BP(belief propagation) 사후확률}뿐
+    \item 디코더를 다시 돌리지 않고 \keyword{디코더가 실패할지}를 바로 예측
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{실험 설정}
+  \begin{block}{평가한 코드}
+    \begin{itemize}
+      \item \shl{회전 표면 코드}(rotated surface code) 메모리
+      \item \shl{BB 코드}(bivariate bicycle): [[72,12,6]], [[144,12,12]]
+    \end{itemize}
+  \end{block}
+  \tightgap
+  \begin{exampleblock}{노이즈 모델}
+    \small 균일한 탈분극(depolarising) \keyword{회로 수준} 노이즈, 현실적인 물리 오류율 영역
+  \end{exampleblock}
+\end{frame}
+
+% ============================ 3 ============================
+\renewcommand{\secblurb}{90\%만 남겨도 논리 오류가 수백에서 수천 배 줄어든다}
+\section{결과}
+
+\begin{frame}{BB 코드 결과: 샷 90\% 유지 시}
+  \centering
+  \deckgap
+  \metric{약 3700배}{[[72,12,6]] 논리 오류율 감소}\hfill
+  \metric{약 740배}{[[144,12,12]] 논리 오류율 감소}\hfill
+  \metric{10\%}{버리는 샷 비율}
+  \deckgap\deckgap
+  \begin{callout}[해석]
+    10\%의 샷만 포기하면 남은 결과의 오류가 수백에서 수천 배 줄어든다.
+  \end{callout}
+\end{frame}
+
+\begin{frame}{표면 코드 결과}
+  \begin{itemize}
+    \item 거리 5 표면 코드, 물리 노이즈 \shl{$p = 0.003$}
+    \item 기존 최고 수준인 \keyword{complementary gap} 방법과 \shl{비슷한 수준}의 논리 오류 억제
+    \item 차이점: \hlbox{디코더를 실행하지 않고} 달성
+  \end{itemize}
+  \deckgap
+  \begin{callout}[의미]
+    같은 성능을 더 가벼운 계산으로 얻을 수 있다는 점이 핵심이다.
+  \end{callout}
+\end{frame}
+
+% ============================ 4 ============================
+\renewcommand{\secblurb}{해설자가 보기에 앞으로 확인할 부분}
+\section{생각해 볼 점}
+
+\begin{frame}{생각해 볼 점 (해설자 의견)}
+  \begin{itemize}
+    \item 평가는 \shl{균일 탈분극 노이즈} 기준: 실제 하드웨어의 치우친 노이즈에서도 통할지
+    \item 사후선택은 샷을 버리므로, 실시간 연산보다는 \keyword{상태 준비·메모리} 같은 단계에 더 잘 맞음
+    \item 신경망 학습 비용과 추론 속도는 논문 본문에서 확인 필요
+  \end{itemize}
+\end{frame}
+
+% ============================ 5 ============================
+\renewcommand{\secblurb}{오늘 내용을 세 줄로}
+\section{요약}
+
+\begin{frame}{요약}
+  \begin{enumerate}
+    \item 사후선택은 실패할 것 같은 샷을 버려 \shl{신뢰도를 높이는} 방법
+    \item 이 논문은 \shl{그래프 신경망}으로 디코더 실패를 \keyword{디코더 재실행 없이} 예측
+    \item BB 코드에서 샷 90\% 유지 시 논리 오류 \hlbox{740배 \textasciitilde{} 3700배} 감소
+  \end{enumerate}
+  \begin{callout}[한 줄 정리]
+    ``버릴 샷을 똑똑하게 고르면, 같은 하드웨어로 훨씬 믿을 만한 결과를 얻는다.''
+  \end{callout}
+\end{frame}
+
+\begin{frame}[plain,c]
+  \centering
+  {\fontsize{30}{36}\selectfont\bfseries\color{emph} 시청해 주셔서 감사합니다}
+
+  \deckgap
+  {\large 논문 링크는 설명란에 있습니다}
+
+  \deckgap
+  {\color{sustechgrey}\footnotesize arXiv:2610.00504 \metasep Carty, Noszko, Roffe, Bondesan}
+\end{frame}
+
+\end{document}

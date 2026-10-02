@@ -1,0 +1,13 @@
+[Unit]
+Description=paper-to-youtube web (FastAPI)
+After=network-online.target
+
+[Service]
+User=%USER%
+WorkingDirectory=%DIR%
+EnvironmentFile=%DIR%/server.env
+ExecStart=%DIR%/.venv/bin/uvicorn app:app --host 0.0.0.0 --port ${P2Y_PORT}
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

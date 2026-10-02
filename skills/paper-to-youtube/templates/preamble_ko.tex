@@ -1,0 +1,39 @@
+% =============================================================================
+% paper-to-youtube 한국어 프리앰블 (sustech 테마 재사용, 16:9, 학교 로고·크레딧 제거)
+% main.tex 맨 위에서  \input{preamble_ko}  한 줄로 불러온다.
+% 빌드: latexmk -xelatex main.tex   (latexmkrc 가 ./sustech-theme// 를 TEXINPUTS 에 추가)
+% =============================================================================
+\documentclass[aspectratio=169,10pt]{beamer}
+\usepackage{fontspec}
+% 한글 폰트: Windows 맑은 고딕 → 없으면 Noto Sans CJK KR → 나눔고딕
+\IfFontExistsTF{Malgun Gothic}{%
+  \setsansfont{Malgun Gothic}[AutoFakeSlant=0.15]\setmainfont{Malgun Gothic}[AutoFakeSlant=0.15]%
+}{\IfFontExistsTF{Noto Sans CJK KR}{%
+  \setsansfont{Noto Sans CJK KR}[AutoFakeSlant=0.15]\setmainfont{Noto Sans CJK KR}[AutoFakeSlant=0.15]%
+}{%
+  \setsansfont{NanumGothic}[AutoFakeSlant=0.15]\setmainfont{NanumGothic}[AutoFakeSlant=0.15]%
+}}
+\usetheme{sustech}
+
+\usepackage{amssymb}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,shapes}
+\graphicspath{{figures/}}
+
+% 조건 플래그(테마의 시각화 구분 페이지용, 사용 안 함)
+\newif\ifvizbgdiv
+\vizbgdivfalse
+
+% --- 중국어 고정 문구를 한국어로 -------------------------------------------
+\renewcommand{\figureprefix}{그림}
+\renewenvironment{callout}[1][핵심]{\begin{alertblock}{#1}}{\end{alertblock}}
+\makeatletter
+\renewcommand{\titlemetaline}{%
+  \ifdefempty{\presenter}{}{\presenter\metasep}%
+  \ifdefempty{\presvenue}{}{\presvenue\metasep}%
+  \insertdate}
+\makeatother
+
+% --- 브랜딩: 학교 로고·크레딧 끔 (채널 로고가 있으면 \setlogo[0.14\paperheight]{경로}) ---
+\setlogo{}
+\hidecredits

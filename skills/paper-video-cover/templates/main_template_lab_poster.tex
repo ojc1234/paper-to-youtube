@@ -1,0 +1,113 @@
+% !TEX program = xelatex
+% =============================================================================
+% 实验室调研海报模板（可视化分析分节页式·四行堆叠）/ LAB SURVEY POSTER TEMPLATE
+% 基于 sustech deck 主题（sustech-theme/），单帧 16:10 —— 复刻 deck 的
+% 「可视化分析」分节标题页版式：figures/background.png 全幅背景 + 白色圆角
+% 阴影块，容器 0.6971\textwidth 宽内四行堆叠（绝对垂直居中）：
+%   行1：[实验室调研] [〈DATE〉]（两块等分，≈80px/32pt，高 0.1250\textheight）
+%   行2：机构块 — 品牌色眉题「— 〈TITLE1UNI〉 —」+ 英文小字（高 0.1250\textheight）
+%   行3：〈TITLE1PI〉（≈140px/55pt 单行，高 0.1806\textheight）
+%   行4：〈TITLE2〉〈TITLE3〉 + 强调线（≈95px/37pt 两行，高 0.2153\textheight）
+% 横 gap=0.0258\textwidth，纵 gap=0.0417\textheight（画布 2324×1440 的 60px）；
+% [plain] 帧 + \vspace*{0.107\textheight} 顶 / 0.103\textheight 底（绝对居中，
+%   帧体顶部自带 ~0.7% 额外偏移，实测上下边距 11.8%/12.1%）。
+% 构建：repo 内 latexmk -xelatex main_template_lab_poster.tex
+%       （latexmkrc 已把 ./sustech-theme// 加入 TEXINPUTS）；
+%       生成器（paper-video-cover generate_lab_poster.py）用 xelatex 两遍，
+%       且必须存在 slides-beamer/figures/background.png（复制进构建目录）。
+% 令牌（生成器契约；未替换的令牌按原文编译，代码行残留令牌 = 生成失败）：
+%   〈DATE〉〈TITLE1UNI〉〈TITLE1UNIEN〉〈TITLE1UNICOLOR〉〈TITLE1PI〉〈TITLE2〉〈TITLE3〉
+% 〈TITLE1UNI〉= 机构眉题（如 纽约大学，宽度预算 40 单位，CJK=2/其他=1，可留空则删行）；
+% 〈TITLE1UNIEN〉= 机构英文小字（如 NEW YORK UNIVERSITY，≤40 字符，可留空则删行）；
+% 〈TITLE1UNICOLOR〉= 机构 logo 品牌色（#RRGGBB，缺省 000000 黑，见 definecolor 行）；
+% 〈TITLE1PI〉= 教授姓名（如 Prof. Yann LeCun，≤30 字符，必填）；
+% 〈TITLE2〉〈TITLE3〉宽度预算各 30 单位（CJK=2/其他=1），超限由生成器拒绝。
+% 段落间用空格/分块排版，禁止使用 · 分隔点。
+% =============================================================================
+\documentclass[aspectratio=1610,10pt]{ctexbeamer}
+\usetheme{sustech}
+\sustechscheme{bilibili}   % 默认 B站粉（2026-08 实验室调研配色）；换 lab / default 即可
+
+\usepackage{amssymb}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{geometry}
+\geometry{papersize={32cm,20cm},margin=0cm}  % 16:10 海报纸面；margin=0 让背景画布从页面原点铺满（否则顶部出现白条）
+\usepackage{tikz}
+\usetikzlibrary{shadows}
+\graphicspath{{figures/}}
+
+% --- 全幅背景（与 deck 可视化分析分节页一致；无 background.png 时回退浅底）-----
+\setbeamertemplate{background canvas}{%
+  \IfFileExists{figures/background.png}{%
+    \includegraphics[width=\paperwidth,height=\paperheight]{figures/background.png}}{%
+    \color{white!90!black}\vrule width\paperwidth height\paperheight}}
+
+% --- 网格常量（4:3 容器浮于 16:10 页面；方案 B：容器 1620×1215 @ 2324×1440）-------
+% 容器：宽 0.6971\textwidth（≈22.3cm）× 高 0.8333\textheight，居中
+\newcommand{\containerwidth}{0.6971\textwidth}
+% 统一间距（G=60px：横 60/2324≈2.58%，竖 60/1440≈4.17%）
+\newcommand{\postergap}{0.0258\textwidth}
+\newcommand{\postervgap}{0.0417\textheight}
+% 等分块宽（字面量；节点总宽 = text width + 2×inner sep(12pt≈0.0265\textwidth)）：
+\newcommand{\boxpad}{0.0265\textwidth}
+\newcommand{\boxwfull}{0.6706\textwidth}      % 整行：外缘 = 0.6971
+\newcommand{\blockwtwo}{0.3091\textwidth}     % 两块行：外缘各 = 0.3356（(0.6971-0.0258)/2）
+% 行高（px/1440）：180 / 260 / 310
+\newcommand{\rowhone}{0.1250\textheight}
+\newcommand{\rowhtwo}{0.1806\textheight}
+\newcommand{\rowhthree}{0.2153\textheight}
+
+% --- 阴影圆角块 ---------------------------------------------------------------
+% #1 可选宽度（默认容器宽）；#2 最小高度；#3 内容
+\newcommand{\posterbox}[3][\containerwidth]{%
+  \begin{tikzpicture}%
+    \node[fill=white!85!black, rounded corners=10pt, inner sep=12pt,
+          text width=#1, align=center, minimum height=#2,
+          drop shadow={shadow xshift=6pt, shadow yshift=-6pt, opacity=0.5, fill=black}]
+          {#3};%
+  \end{tikzpicture}}
+
+% --- 眉题品牌色（机构 logo 色；无 logo 用黑 #000000）-------------------------
+% 该行默认 000000 以保证模板可裸编译；生成器见 〈TITLE1UNICOLOR〉 时把
+% 前后两个 000000 一起换成机构品牌色（#RRGGBB）。
+\definecolor{instbrand}{HTML}{000000}% 〈TITLE1UNICOLOR〉
+\definecolor{nyugrey}{HTML}{8A8F98}      % 英文小字灰
+% 行内并排：\posterrow{块A}{块B}{块C}（1–3 个参数，统一间距）
+% 用整行 \hbox to \textwidth + \hss 两端胶水居中：\hbox to 容器宽 不是段落行，
+% 不会被 \centering 居中（会贴左边缘）；整行 hbox 才保证内容居中。
+\newcommand{\posterrow}[3]{%
+  \hbox to \textwidth{\hss
+    #1\ifx\\#2\\\else\hspace{\postergap}#2\fi
+    \ifx\\#3\\\else\hspace{\postergap}#3\fi
+  \hss}}
+
+\begin{document}
+\begin{frame}[plain]
+  \vspace*{0.107\textheight}% 顶部留白（实测帧体顶部额外 ~1%，0.188+0.01 ≈ 19.8%）
+  \centering
+  % 行 1：实验室调研 + 日期（两块等分、等高，≈80px/32pt）
+  \posterrow{%
+    \posterbox[\blockwtwo]{\rowhone}{{\color{sustechgrey}\fontsize{32}{40}\selectfont 实验室调研}}}{%
+    \posterbox[\blockwtwo]{\rowhone}{{\color{sustechgrey}\fontsize{32}{40}\selectfont 〈DATE〉}}}{}
+  \par\vspace{\postervgap}
+  % 行 2（新）：机构块「— 纽约大学 —」+ 英文小字（品牌色眉题）
+  \posterbox[\boxwfull]{\rowhone}{%
+    {\color{instbrand}\bfseries\fontsize{25}{34}\selectfont%
+      {\color{instbrand!50!white}\rule[-0.35em]{1.11cm}{1.2pt}}\hspace{0.44cm}%
+      〈TITLE1UNI〉%
+      \hspace{0.44cm}{\color{instbrand!50!white}\rule[-0.35em]{1.11cm}{1.2pt}}}\\[0.3em]%
+    {\color{nyugrey}\fontsize{13}{18}\selectfont\addfontfeature{LetterSpace=120} 〈TITLE1UNIEN〉}}
+  \par\vspace{\postervgap}
+  % 行 3：教授姓名块（55pt 粉单行）
+  \posterbox[\boxwfull]{\rowhtwo}{%
+    {\color{primtext}\fontsize{55}{66}\selectfont\bfseries 〈TITLE1PI〉}}
+  \par\vspace{\postervgap}
+  % 行 4：副标题两行（≈95px/37pt）+ 强调线
+  \posterbox[\boxwfull]{\rowhthree}{%
+    {\color{emph}\fontsize{37}{46}\selectfont\bfseries 〈TITLE2〉}\\[0.35em]%
+    {\color{emph}\fontsize{37}{46}\selectfont\bfseries 〈TITLE3〉}\\[0.7em]%
+    {\color{emph}\rule{2.5cm}{3pt}}}
+  \vspace*{0.103\textheight}% 底部留白（与顶部对称，总高 = 0.188+0.604+0.198 ≈ 1.0）
+\end{frame}
+\end{document}

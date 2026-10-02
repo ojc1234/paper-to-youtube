@@ -1,0 +1,11 @@
+This kit bundles the skills from "paper-share-skills" by Haobo Yang
+(https://github.com/yhbcode000/paper-share-skills), licensed under Apache-2.0
+(see LICENSE-paper-share-skills.txt).
+
+Modifications in this kit:
+- skills/paper-slides-to-video/scripts/slides_to_video.py: slide render DPI is read from the
+  RENDER_DPI environment variable (default 200, unchanged).
+- skills/paper-to-youtube/: new skill (Korean narration, YouTube upload, duplicate filter,
+  thumbnail and Shorts generation, Korean 16:9 preamble for the sustech theme).
+The SUSTech logo is not used in generated YouTube slides (\setlogo{}); logo rights belong to the institution.
+- get_source.py step 0 uses arxiv-downloader (MIT, Steven Braun) installed via uv at runtime; not bundled.

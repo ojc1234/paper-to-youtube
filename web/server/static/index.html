@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>논문 → 유튜브 | Hermes</title>
+<style>
+:root{--bg:#0f1117;--card:#181b24;--line:#2a2f3d;--fg:#e8eaf0;--mute:#9aa3b5;--acc:#ff5c5c;--ok:#3ecf8e;--warn:#f5b84b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 "Pretendard","Malgun Gothic",system-ui,sans-serif}
+header{padding:28px 20px 8px;max-width:980px;margin:auto}h1{margin:0;font-size:26px}h1 span{color:var(--acc)}
+.sub{color:var(--mute);margin-top:4px}
+main{max-width:980px;margin:auto;padding:12px 20px 60px;display:grid;gap:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
+.card h2{margin:0 0 12px;font-size:18px}
+input[type=text]{flex:1;background:#0c0e14;border:1px solid var(--line);color:var(--fg);padding:11px 14px;border-radius:10px;font-size:15px}
+button{background:var(--acc);border:0;color:#fff;padding:11px 18px;border-radius:10px;font-weight:700;cursor:pointer;font-size:15px}
+button:disabled{opacity:.5;cursor:default}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.drop{border:2px dashed var(--line);border-radius:12px;padding:26px;text-align:center;color:var(--mute);cursor:pointer}
+.drop.on{border-color:var(--acc);color:var(--fg)}
+.vids{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-top:12px}
+.v{background:#0c0e14;border:1px solid var(--line);border-radius:10px;overflow:hidden;font-size:13px}
+.v img{width:100%;display:block;aspect-ratio:16/9;object-fit:cover}.v div{padding:8px}
+.v a{color:var(--fg);text-decoration:none;font-weight:600}.v .u{color:#7fb2ff;word-break:break-all;font-size:12px}
+.mine{border-color:var(--acc)}
+.badge{display:inline-block;font-size:12px;padding:2px 8px;border-radius:99px;background:#262b38;color:var(--mute)}
+.badge.ok{background:#173d2d;color:var(--ok)}.badge.bad{background:#3d1d1d;color:#ff8a8a}
+.bar{height:10px;background:#0c0e14;border-radius:99px;overflow:hidden;border:1px solid var(--line)}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--acc),#ffb35c);transition:width .8s}
+.eta{font-size:28px;font-weight:800}.stage{color:var(--warn);font-weight:700}
+.log{max-height:420px;overflow:auto;background:#0c0e14;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:12px;font-size:14px}
+.log p{margin:0 0 8px;opacity:0;animation:in .5s forwards}.log .tm{color:var(--mute);font-size:12px;margin-right:6px}
+.log .tool{color:#7fb2ff}.log .say{color:var(--fg)}.log .err{color:#ff8a8a}.log .stg{color:var(--warn);font-weight:700}
+.log code{background:#1d2130;padding:1px 5px;border-radius:5px;font-size:12px;color:#c9d1e4;word-break:break-all}
+@keyframes in{to{opacity:1}}
+.tip{margin-top:10px;padding:12px;border-radius:10px;background:#1b2030;color:#cfd6e6;font-size:14px;min-height:46px}
+.result a{color:#7fb2ff;font-size:17px;font-weight:700}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<header>
+  <h1>📄 논문 → <span>▶ YouTube</span></h1>
+  <div class="sub">이름으로 관련 영상을 찾거나, PDF 를 올리면 Hermes 가 한국어 해설 영상을 만들어 유튜브에 올려 줍니다.</div>
+</header>
+<main>
+  <section class="card">
+    <h2>🔎 이름으로 유튜브 찾기</h2>
+    <form id="sf" class="row"><input type="text" id="q" placeholder="이름 또는 주제 (예: 바이오블록스, 오지철, 단백질)" required><button>검색</button></form>
+    <div id="sr"></div>
+  </section>
+
+  <section class="card">
+    <h2>🎬 PDF 로 영상 만들기 <span id="ws" class="badge">작업 PC 확인 중…</span></h2>
+    <form id="jf">
+      <label class="drop" id="drop">PDF 를 여기로 끌어 놓거나 눌러서 선택<br><small id="fn"></small>
+        <input type="file" id="pdf" accept="application/pdf" hidden></label>
+      <div class="row" style="margin-top:12px">
+        <input type="text" id="nm" placeholder="이름(선택) — 나중에 이 이름으로 검색하면 영상이 나와요">
+        <button id="go" disabled>영상 만들기</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="card hidden" id="jc">
+    <h2>⏳ 진행 상황 <span id="jid" class="badge"></span></h2>
+    <div class="row" style="justify-content:space-between">
+      <div><div class="stage" id="stage">대기 중</div><div class="sub" id="elapsed"></div></div>
+      <div style="text-align:right"><div class="eta" id="eta">--</div><div class="sub">남은 시간(예상)</div></div>
+    </div>
+    <div class="bar" style="margin-top:10px"><i id="pb"></i></div>
+    <div class="tip" id="tip">Hermes 가 지금 무엇을 하는지 여기서 천천히 설명해 드릴게요.</div>
+    <div class="result hidden" id="res"></div>
+    <div class="log" id="log"></div>
+  </section>
+
+  <section class="card"><h2>🗂 최근 작업</h2><div id="jl" class="sub">불러오는 중…</div></section>
+</main>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt=s=>{s=Math.max(0,Math.round(s));const m=Math.floor(s/60);return m?`${m}분 ${String(s%60).padStart(2,"0")}초`:`${s}초`};
+
+// ---------- 검색
+$("#sf").onsubmit=async e=>{e.preventDefault();$("#sr").innerHTML='<p class="sub">찾는 중…</p>';
+  const r=await (await fetch("/api/search?q="+encodeURIComponent($("#q").value))).json();
+  const card=(v,mine)=>{const id=(v.url.match(/(?:v=|youtu\.be\/|shorts\/)([\w-]{11})/)||[])[1];
+    return `<div class="v ${mine?"mine":""}">${id?`<img src="https://i.ytimg.com/vi/${id}/mqdefault.jpg" loading="lazy">`:""}<div>
+    ${mine?'<span class="badge ok">Hermes 제작</span> ':""}<a href="${esc(v.url)}" target="_blank">${esc(v.title)}</a>
+    <div class="sub">${esc(v.channel||v.name||"")} ${esc(v.length||"")} ${esc(v.views||"")}</div>
+    <div class="u">${esc(v.url)}</div>${v.shorts?`<div class="u">쇼츠: ${esc(v.shorts)}</div>`:""}</div></div>`};
+  let h="";
+  if(r.mine.length)h+=`<h3>Hermes 가 만든 영상 (${r.mine.length})</h3><div class="vids">${r.mine.map(v=>card(v,1)).join("")}</div>`;
+  h+=`<h3>유튜브 검색 결과 (${r.youtube.length})</h3>`+(r.youtube.length?`<div class="vids">${r.youtube.map(v=>card(v,0)).join("")}</div>`:`<p class="sub">결과 없음 ${esc(r.error||"")}</p>`);
+  $("#sr").innerHTML=h};
+
+// ---------- 업로드
+const pdf=$("#pdf"),drop=$("#drop");
+const pick=f=>{if(!f)return;const dt=new DataTransfer();dt.items.add(f);pdf.files=dt.files;$("#fn").textContent=f.name+" ("+(f.size/1e6).toFixed(1)+"MB)";$("#go").disabled=false};
+pdf.onchange=()=>pick(pdf.files[0]);
+["dragover","dragenter"].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.add("on")}));
+["dragleave","drop"].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.remove("on")}));
+drop.addEventListener("drop",e=>pick(e.dataTransfer.files[0]));
+$("#jf").onsubmit=async e=>{e.preventDefault();$("#go").disabled=true;$("#go").textContent="올리는 중…";
+  const fd=new FormData();fd.append("pdf",pdf.files[0]);fd.append("name",$("#nm").value);
+  const r=await fetch("/api/jobs",{method:"POST",body:fd});$("#go").textContent="영상 만들기";
+  if(!r.ok){alert((await r.json()).detail||"실패");$("#go").disabled=false;return}
+  const j=await r.json();location.hash=j.id;watch(j.id);loadJobs()};
+
+// ---------- 진행 상황
+const TIPS=["💡 Hermes 는 PDF 를 읽고 스스로 슬라이드 구성을 정해요. 사람이 중간에 답할 필요가 없어요.",
+ "💡 슬라이드는 LaTeX(Beamer)로 만들어지고, 넘치는 글자가 없을 때까지 스스로 고칩니다.",
+ "💡 나레이션은 슬라이드 한 장마다 한 문단씩, 화면을 읽지 않고 '설명'하도록 씁니다.",
+ "💡 목소리는 Microsoft Edge TTS 의 한국어 음성(선희)이고, 본편은 1.25배속으로 합쳐집니다.",
+ "💡 쇼츠는 60초를 넘지 않도록 핵심 장면 3~5개만 골라 세로 영상으로 만들어요.",
+ "💡 업로드는 API 가 아니라 실제 크롬 브라우저를 조작해서 유튜브 스튜디오에 올립니다.",
+ "💡 기다리는 동안 위의 '이름으로 유튜브 찾기'도 써 보세요!"];
+let es,tipI=0,tipT,tick,state={};
+function line(cls,html,t){const p=document.createElement("p");p.className=cls;
+  p.innerHTML=`<span class="tm">${new Date((t||Date.now()/1000)*1000).toLocaleTimeString("ko-KR")}</span>${html}`;
+  const L=$("#log"),bottom=L.scrollTop+L.clientHeight>=L.scrollHeight-30;L.appendChild(p);if(bottom)L.scrollTop=L.scrollHeight}
+function render(){const s=state;$("#stage").textContent=s.stage||"";$("#pb").style.width=(s.progress||0)+"%";
+  if(s.status==="queued"){$("#eta").textContent="대기 중"}
+  else if(s.status==="done"){$("#eta").textContent="완료!"}
+  else if(s.status==="error"){$("#eta").textContent="실패"}
+  else if(s.eta!=null){const left=s.eta-(Date.now()/1000-(s.etaAt||Date.now()/1000));$("#eta").textContent=left>0?"약 "+fmt(left):"곧 끝나요"}
+  if(s.started)$("#elapsed").textContent="경과 "+fmt(Date.now()/1000-s.started)}
+function watch(id){$("#jc").classList.remove("hidden");$("#jid").textContent=id;$("#log").innerHTML="";$("#res").classList.add("hidden");
+  state={};es&&es.close();clearInterval(tipT);clearInterval(tick);
+  tipT=setInterval(()=>{$("#tip").textContent=TIPS[tipI++%TIPS.length]},12000);tick=setInterval(render,1000);
+  es=new EventSource(`/api/jobs/${id}/events`);
+  es.onmessage=m=>{const e=JSON.parse(m.data);
+    if(e.eta!=null){state.eta=e.eta;state.etaAt=e.t||Date.now()/1000}
+    if(e.stage)state.stage=e.stage;if(e.progress!=null)state.progress=e.progress;
+    if(e.type==="state"){Object.assign(state,{status:e.status,stage:e.stage||state.stage,progress:e.progress??state.progress});if(e.status==="queued")line("say","작업 PC 가 이 작업을 가져가길 기다리고 있어요.",e.t)}
+    else if(e.type==="started"){state.status="running";state.started=e.t;line("stg","🚀 "+esc(e.text),e.t)}
+    else if(e.type==="stage"){line("stg","▶ "+esc(e.stage)+(e.text?" — "+esc(e.text):""),e.t)}
+    else if(e.type==="explain"){line("say","🧠 "+esc(e.text),e.t);$("#tip").textContent=e.text}
+    else if(e.type==="tool"){line("tool","🔧 "+esc(e.text)+(e.detail?`<br><code>${esc(e.detail)}</code>`:""),e.t)}
+    else if(e.type==="say"){line("say","💬 Hermes: "+esc(e.text),e.t)}
+    else if(e.type==="done"){state.status="done";state.progress=100;const r=e.result||{};line("stg","✅ 완료!",e.t);
+      $("#res").innerHTML=`<p>🎉 업로드 완료</p><p>본편: <a href="${esc(r.main_url)}" target="_blank">${esc(r.main_url)}</a></p>`+(r.shorts_url?`<p>쇼츠: <a href="${esc(r.shorts_url)}" target="_blank">${esc(r.shorts_url)}</a></p>`:"")+(r.title?`<p class="sub">${esc(r.title)}</p>`:"");
+      $("#res").classList.remove("hidden");clearInterval(tipT);loadJobs()}
+    else if(e.type==="error"){state.status="error";line("err","❌ "+esc(e.text),e.t);clearInterval(tipT);loadJobs()}
+    render()}}
+async function loadJobs(){const js=await (await fetch("/api/jobs")).json();
+  $("#jl").innerHTML=js.length?js.map(j=>`<div class="row" style="justify-content:space-between;border-bottom:1px solid var(--line);padding:6px 0">
+  <a href="#${j.id}" onclick="watch('${j.id}')" style="color:var(--fg)">${esc(j.name||j.filename)}</a>
+  <span>${j.result?.main_url?`<a href="${esc(j.result.main_url)}" target="_blank" style="color:#7fb2ff">${esc(j.result.main_url)}</a> `:""}
+  <span class="badge ${j.status==="done"?"ok":j.status==="error"?"bad":""}">${{queued:"대기",running:"진행 중",done:"완료",error:"실패"}[j.status]}</span></span></div>`).join(""):"아직 없어요"}
+async function ws(){try{const s=await (await fetch("/api/status")).json();const b=$("#ws");
+  b.className="badge "+(s.worker_online?"ok":"bad");b.textContent=s.worker_online?`작업 PC 온라인 · 대기 ${s.queued}`:"작업 PC 오프라인 (올리면 켜질 때 처리돼요)"}catch{}}
+ws();setInterval(ws,10000);loadJobs();if(location.hash.length>1)watch(location.hash.slice(1));
+</script>
+</body>
+</html>

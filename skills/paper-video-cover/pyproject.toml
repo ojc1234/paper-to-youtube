@@ -1,0 +1,8 @@
+[project]
+name = "paper-video-cover"
+version = "0.1.0"
+description = "Generate deterministic paper video-cover posters"
+requires-python = ">=3.10"
+dependencies = [
+    "pillow>=10",
+]

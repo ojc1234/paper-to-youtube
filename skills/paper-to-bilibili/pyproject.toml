@@ -1,0 +1,6 @@
+[project]
+name = "paper-to-bilibili"
+version = "0.1.0"
+description = "Orchestrate paper slides, narrated videos, and Bilibili publication"
+requires-python = ">=3.10"
+dependencies = []

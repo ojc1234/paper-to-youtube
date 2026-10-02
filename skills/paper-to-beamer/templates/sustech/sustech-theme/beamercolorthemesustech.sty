@@ -1,0 +1,205 @@
+% beamercolorthemesustech.sty
+% Theme author: SUSTech slides template contributors · github.com/yhbcode000/sustech-slides-template
+% COLOR-ONLY theme recoloring Madrid. Use on top of Madrid:
+%     \usetheme{Madrid}
+%     \usecolortheme{sustech}
+%
+% 调色板（学术风 低饱和蓝 + 橙/金 强调 + 灰绿/浅灰 辅助 + 白底）
+%   主色 蓝   #2C5F7C / #3A6F8C / #5B8FA8 —— 标题结构、section、框架、主图表
+%   强调 橙金 #E67E22 / #F4B942           —— 关键词、结论、重要数字
+%   辅色 灰绿/浅灰 #7C9A92 / #EAECEF / #F5F7F8 —— 背景区块、辅助信息
+%   背景 白   #FFFFFF
+%   正文 深灰 #323236
+\ProvidesPackage{beamercolorthemesustech}[2026/06/25 SUSTech academic palette for Madrid]
+
+\RequirePackage{xcolor}
+
+% --- 调色板 ------------------------------------------------------------------
+% 主色：蓝
+\definecolor{sustechblue}{HTML}{2C5F7C}    % 深青蓝（主标题 / 主结构）
+\definecolor{sustechblue2}{HTML}{3A6F8C}   % 标准学术蓝（结构线 / 层级）
+\definecolor{sustechblue3}{HTML}{5B8FA8}   % 柔和蓝（辅助图表）
+\definecolor{sustechbluelt}{HTML}{D6E2EA}  % 极浅蓝（深底上的副标题文字）
+% 强调：橙 / 金
+\definecolor{sustechorange}{HTML}{E67E22}  % 学术橙（主强调）
+\definecolor{sustechgold}{HTML}{F4B942}    % 柔和金黄（次强调 / highlight）
+\definecolor{sustechorlt}{HTML}{FBEBDA}    % 浅橙底（强调块体）
+% 辅色：灰绿 / 浅灰
+\definecolor{sustechgreen}{HTML}{7C9A92}   % 灰绿（冷静辅助）
+\definecolor{cardgrey}{HTML}{EAECEF}       % 浅灰（分割 / 卡片背景）
+\definecolor{bgsoft}{HTML}{F5F7F8}         % 更浅背景灰（区块层次）
+% 中性文字
+\definecolor{sustechink}{HTML}{323236}     % 正文深灰
+\definecolor{sustechgrey}{HTML}{787880}    % 次级文字灰
+
+% --- 语义角色别名（样式层只引用 emph/kw/hdr 与角色色名，不感知具体色值）-----
+% 由本颜色层统一映射；配色方案切换时重新映射（\colorlet 是快照）。
+\colorlet{emph}{sustechorange}   % 强调（关键词 / 列表 / callout）
+\colorlet{kw}{sustechorange}     % 关键词（同强调）
+\colorlet{hdr}{sustechblue}      % 表头底色行
+\colorlet{thc}{white}            % 表头文字（默认白；official 方案改黑）
+\colorlet{primtext}{sustechblue} % 白底上的主色文字（章节分隔页标题等）
+
+% --- 基础 --------------------------------------------------------------------
+\setbeamercolor{normal text}{fg=sustechink,bg=white}
+\setbeamercolor{structure}{fg=primtext}       % 结构默认走主色（白底可读版）
+\setbeamercolor{alerted text}{fg=sustechorange}
+\setbeamercolor{example text}{fg=sustechgreen}
+
+% --- Madrid 页脚 / 页眉三段色块（蓝色渐变：深 -> 标准 -> 柔和）----------------
+\setbeamercolor{palette primary}{fg=white,bg=sustechblue}
+\setbeamercolor{palette secondary}{fg=white,bg=sustechblue2}
+\setbeamercolor{palette tertiary}{fg=white,bg=sustechblue3}
+\setbeamercolor{palette quaternary}{fg=white,bg=sustechblue}
+\setbeamercolor{author in head/foot}{fg=white,bg=sustechblue}
+\setbeamercolor{title in head/foot}{fg=white,bg=sustechblue2}
+\setbeamercolor{date in head/foot}{fg=white,bg=sustechblue3}
+
+% --- 标题 / frametitle（主蓝结构）-------------------------------------------
+\setbeamercolor{title}{fg=white,bg=sustechblue}
+\setbeamercolor{subtitle}{fg=sustechbluelt}
+\setbeamercolor{frametitle}{fg=white,bg=sustechblue}
+\setbeamercolor{framesubtitle}{fg=sustechorange}
+
+% --- 章节 / Part 标题（主蓝）------------------------------------------------
+\setbeamercolor{section title}{fg=sustechblue}
+\setbeamercolor{part title}{fg=sustechblue}
+\setbeamercolor{section in toc}{fg=sustechink}
+
+% --- 列表标记 / 编号（橙色强调）---------------------------------------------
+\setbeamercolor{itemize item}{fg=sustechorange}
+\setbeamercolor{itemize subitem}{fg=sustechorange}
+\setbeamercolor{itemize subsubitem}{fg=sustechgrey}
+\setbeamercolor{enumerate item}{fg=sustechorange}
+\setbeamercolor{enumerate subitem}{fg=sustechorange}
+
+% --- 块 ----------------------------------------------------------------------
+% 普通 block：标准学术蓝标题（结构），极浅灰底
+\setbeamercolor{block title}{fg=white,bg=sustechblue2}
+\setbeamercolor{block body}{fg=sustechink,bg=bgsoft}
+% alertblock（callout 要点框）：橙标题（强调），浅橙底
+\setbeamercolor{block title alerted}{fg=white,bg=sustechorange}
+\setbeamercolor{block body alerted}{fg=sustechink,bg=sustechorlt}
+% exampleblock：灰绿标题（辅助），浅灰底
+\setbeamercolor{block title example}{fg=white,bg=sustechgreen}
+\setbeamercolor{block body example}{fg=sustechink,bg=cardgrey}
+
+% --- 图注 --------------------------------------------------------------------
+\setbeamercolor{caption name}{fg=sustechorange}
+
+% --- 可选配色方案 ------------------------------------------------------------
+% 用法（在 \usetheme{sustech} 之后调用）：
+%   \sustechscheme{lab}      实验室调研配色：复旦红主色 + 宝石红强调 + 香槟金
+%   \sustechscheme{bilibili} Bilibili 粉色配色：深粉主色 + 深 B站蓝强调
+%   \sustechscheme{official-bilibili-pink-blue} 官方 B站 AI 区指南配色：全黑字 + 官方粉 #E15E8C 高亮 + 官方蓝 #0CB6F2 结构
+%   \sustechscheme{default}  默认蓝色学术风（加载时已生效，无需调用）
+% 新增方案 = 新增一个 \sustech@palette@<name> 宏（重定义调色板 + 重发别名）。
+\newcommand{\sustechscheme}[1]{%
+  \ifcsname sustech@palette@#1\endcsname
+    \csname sustech@palette@#1\endcsname
+  \else
+    \PackageError{beamercolorthemesustech}{Unknown color scheme '#1'}%
+      {Available schemes: default, lab, bilibili, official-bilibili-pink-blue}%
+  \fi
+}
+% 默认蓝色学术风（加载时已应用；无操作）
+\newcommand{\sustech@palette@default}{}
+% 实验室调研配色：复旦红主色 + 宝石红强调 + 香槟金高亮（GitHub 现成策展配色）
+% 主色 #CC1A1A 取自 latexstudio/FDU-Beamer-Theme 复旦红（rgb 0.8,0.102,0.102）；
+% 强调 #9A2515 取自 georgebwang/geamer 的 ruby（源自 Viget 对比度文章）；
+% 金 #E0B85C 与奶油 #FFF1DD 取自搜索到的 Festive & Elegant 策展组合。
+% 全红族克制搭配（无橙色冲突），底色转暖象牙；默认方案不受影响。
+\newcommand{\sustech@palette@lab}{%
+  \definecolor{sustechblue}{HTML}{CC1A1A}%   复旦红（主标题 / 主结构）白字 5.6:1
+  \definecolor{sustechblue2}{HTML}{E5002B}%  亮红（结构线 / block 标题）4.8:1
+  \definecolor{sustechblue3}{HTML}{E03131}%  亮红（页脚第三段）4.5:1
+  \definecolor{sustechbluelt}{HTML}{FFD9DE}% 极浅粉（深底上的副标题文字）4.6:1
+  \definecolor{sustechorange}{HTML}{9A2515}% 宝石红 ruby（主强调；alertblock 白字 7.9:1）
+  \definecolor{sustechgold}{HTML}{E0B85C}%   香槟金（hlbox 高亮底）
+  \definecolor{sustechorlt}{HTML}{FFF1DD}%   奶油底（alertblock 块体）
+  \definecolor{cardgrey}{HTML}{F1E9DA}%      暖象牙（卡片 / 隔行 / 标签底）
+  \definecolor{bgsoft}{HTML}{FAF6EC}%        暖白（block 块体底）
+  % sustechgreen 保持 #7C9A92 不动（中性灰绿，exampleblock 辅助）
+  \colorlet{emph}{sustechorange}% 重发别名：xcolor 的 \colorlet 是快照，
+  \colorlet{kw}{sustechorange}%   必须在新色值定义之后重发，elements 宏才会跟随
+  \colorlet{hdr}{sustechblue}%
+  \colorlet{primtext}{sustechblue}%
+}
+% Bilibili 粉色配色：品牌粉 #FB7299 为主色 + 深 B站蓝强调（品牌色：粉 #FB7299 / 蓝 #00A1D6）
+% 结构面（标题栏 / 页脚首段）直接用品牌粉 #FB7299（白字大标题，B站按钮式用法，2.6:1）；
+% 小字面（block 标题 / 页脚中后段）用加深粉阶 #E05584/#D6457E（白字 3.6–4.2:1）；
+% 白底主色文字用 primtext=#D6457E（4.2:1）；强调为加深版 B站蓝 #007CA6（双向 4.7:1）。
+\newcommand{\sustech@palette@bilibili}{%
+  \definecolor{sustechblue}{HTML}{FB7299}%   品牌粉（主标题 / 主结构）白字大标题 2.6:1
+  \definecolor{sustechblue2}{HTML}{E05584}%  加深粉（block 标题 / 页脚中段）白字 3.6:1
+  \definecolor{sustechblue3}{HTML}{D6457E}%  深粉（页脚第三段 / 表头 / 白底主色字）白字 4.2:1
+  \definecolor{sustechbluelt}{HTML}{FFD9E4}% 极浅粉（深底上的副标题文字）
+  \definecolor{sustechorange}{HTML}{007CA6}% 深 B站蓝（主强调；白字 / 白底 4.7:1）
+  \definecolor{sustechgold}{HTML}{FB7299}%   品牌粉（hlbox 高亮底，45% 混合成浅粉）
+  \definecolor{sustechorlt}{HTML}{FFFFFF}%   白色底（alertblock 块体，避免浅粉显脏）
+  \definecolor{cardgrey}{HTML}{F2F3F5}%      B站中性灰（卡片 / 隔行 / 标签底）
+  \definecolor{bgsoft}{HTML}{F7F8FA}%       浅灰白（block 块体底）
+  % 配色规则：浅粉只配粉，蓝色只配白 / 浅蓝 —— framesubtitle 在粉底上不用蓝
+  \setbeamercolor{framesubtitle}{fg=sustechbluelt}%
+  % sustechgreen 保持 #7C9A92 不动（中性灰绿，exampleblock 辅助）
+  \colorlet{primtext}{sustechblue3}% 白底主色文字用深粉，保证可读
+  \colorlet{emph}{sustechorange}% 重发别名：xcolor 的 \colorlet 是快照，
+  \colorlet{kw}{sustechorange}%   必须在新色值定义之后重发，样式层才会跟随
+  \colorlet{hdr}{sustechblue3}%
+}
+% 官方 B站配色：提取自《B站人工智能区创作指南》官方 PPTX（2026-02 版）
+% 源文件：《B站人工智能区创作指南》官方 PPTX（2026-02 版，配色提取来源，源文件不随仓库分发）
+% 提取结果（XML srgbClr 计数）：官方蓝 #0CB6F2 ×277、官方粉 #E15E8C ×66、
+% 浅蓝 #60CAFF ×18、浅粉 #F2AEBD ×9、浅蓝底 #E5F6FF ×8、正文墨 #0D0D0D、次级灰 #5C5C5C。
+% 用户规则（2026-08）：所有文字（含页标题 / 分节标题 / 表头 / 页脚 / callout 标题）一律黑色；
+% 高亮（强调文字 / 大数字 / callout 标题底 / hlbox）用官方粉 #E15E8C；
+% 文字承载面（标题栏 / 页脚 / block 标题 / 表头行）用官方蓝 #0CB6F2（黑字 8.9:1）；
+% callout 块体与 block 底用浅色（#E5F6FF/#F7F9FC）；纯结构（项目符号 / 编号 / 分节 rule）用官方蓝。
+% #60CAFF/#F2AEBD 是版面装饰色，未映射到任何角色（保留在色板注释中）。
+\expandafter\newcommand\csname sustech@palette@official-bilibili-pink-blue\endcsname{%
+  \definecolor{sustechblue}{HTML}{0CB6F2}%   官方蓝（纯结构：项目符号 / 编号 / rule）
+  \definecolor{sustechblue2}{HTML}{0A92C2}%  加深蓝（保留阶位）
+  \definecolor{sustechblue3}{HTML}{08769D}%  深蓝（保留阶位）
+  \definecolor{sustechbluelt}{HTML}{E5F6FF}% 官方浅蓝（callout 块体底）
+  \definecolor{sustechorange}{HTML}{E15E8C}% 官方粉（高亮：强调文字 / callout 标题底）
+  \definecolor{sustechgold}{HTML}{E15E8C}%   官方粉（hlbox 高亮底 / metric 大数字，实色）
+  \definecolor{sustechorlt}{HTML}{E5F6FF}%   官方浅蓝底（callout 块体）
+  \definecolor{cardgrey}{HTML}{F2F3F5}%      B站中性灰（卡片 / 隔行 / 标签底）
+  \definecolor{bgsoft}{HTML}{F7F9FC}%        近白带蓝调（block 块体底）
+  \definecolor{sustechink}{HTML}{0D0D0D}%    黑色（所有文字）
+  \definecolor{sustechgrey}{HTML}{5C5C5C}%   次级灰（图注正文 / 次级文字）
+  % sustechgreen 保持 #7C9A92 不动（中性灰绿，exampleblock 辅助）
+  % 字一律黑色：标题栏 / 封面 / 页脚 / block 标题 / 表头 / callout 标题 / \alert / 图注标签；
+  % 文字承载面一律官方蓝 #0CB6F2 底（黑字 8.9:1）
+  \setbeamercolor{title}{fg=sustechink,bg=sustechblue}%
+  \setbeamercolor{subtitle}{fg=sustechink}%
+  \setbeamercolor{frametitle}{fg=sustechink,bg=sustechblue}%
+  \setbeamercolor{framesubtitle}{fg=sustechink}%
+  \setbeamercolor{palette primary}{fg=sustechink,bg=sustechblue}%
+  \setbeamercolor{palette secondary}{fg=sustechink,bg=sustechblue}%
+  \setbeamercolor{palette tertiary}{fg=sustechink,bg=sustechblue}%
+  \setbeamercolor{palette quaternary}{fg=sustechink,bg=sustechblue}%
+  \setbeamercolor{author in head/foot}{fg=sustechink,bg=sustechblue}%
+  \setbeamercolor{title in head/foot}{fg=sustechink,bg=sustechblue}%
+  \setbeamercolor{date in head/foot}{fg=sustechink,bg=sustechblue}%
+  \setbeamercolor{section title}{fg=sustechink}%
+  \setbeamercolor{part title}{fg=sustechink}%
+  \setbeamercolor{block title}{fg=sustechink,bg=sustechblue}%
+  \setbeamercolor{block title alerted}{fg=sustechink,bg=sustechorange}% 黑字粉底（高亮）
+  \setbeamercolor{block title example}{fg=sustechink,bg=cardgrey}%   黑字灰底
+  \setbeamercolor{example text}{fg=sustechink}%
+  \setbeamercolor{alerted text}{fg=sustechink}%
+  \setbeamercolor{caption name}{fg=sustechink}%
+  % 其他 → 官方蓝：项目符号 / 编号
+  \setbeamercolor{itemize item}{fg=sustechblue}%
+  \setbeamercolor{itemize subitem}{fg=sustechblue}%
+  \setbeamercolor{enumerate item}{fg=sustechblue}%
+  \setbeamercolor{enumerate subitem}{fg=sustechblue}%
+  \colorlet{primtext}{sustechink}% 分节标题 → 黑色
+  \colorlet{emph}{sustechorange}% 高亮 → 官方粉；重发别名：xcolor 的 \colorlet 是快照，
+  \colorlet{kw}{sustechorange}%   必须在新色值定义之后重发，样式层才会跟随
+  \colorlet{hdr}{sustechblue}%    表头行 → 官方蓝底（thc 黑字）
+  \colorlet{thc}{sustechink}%     表头文字 → 黑色
+}
+
+\mode<all>

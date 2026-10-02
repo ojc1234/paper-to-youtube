@@ -1,0 +1,117 @@
+% SUSTech color theme for Gemini poster
+% Adapted from beamercolorthemesustech.sty (sustech-slides-template, branch lab-survey)
+% https://github.com/anishathalye/gemini
+%
+% Palette source of truth: sustech-slides-template/sustech-theme/beamercolorthemesustech.sty
+% Schemes: default (blue), lab (FDU red), bilibili (pink + B站蓝 accent).
+% Usage: \usecolortheme{sustech} then \sustechscheme{bilibili} (default is applied at load).
+
+% ====================
+% Definitions
+% ====================
+
+\RequirePackage{xcolor}
+
+% Shared neutrals (unchanged across schemes)
+\definecolor{sustechink}{HTML}{323236}   % 正文深灰
+\definecolor{sustechgrey}{HTML}{787880}  % 次级文字灰
+\definecolor{sustechgreen}{HTML}{7C9A92} % 灰绿（辅助）
+
+% --- 可选配色方案 ------------------------------------------------------------
+% 用法（在 \usecolortheme{sustech} 之后调用）：
+%   \sustechscheme{lab}      实验室调研配色：复旦红主色 + 宝石红强调 + 香槟金
+%   \sustechscheme{bilibili} Bilibili 粉色配色：深粉主色 + 深 B站蓝强调
+%   \sustechscheme{default}  默认蓝色学术风（加载时已生效，无需调用）
+\newcommand{\sustechscheme}[1]{%
+  \ifcsname sustech@palette@#1\endcsname
+    \csname sustech@palette@#1\endcsname
+  \else
+    \PackageError{beamercolorthemesustech}{Unknown color scheme '#1'}%
+      {Available schemes: default, lab, bilibili}%
+  \fi
+}
+
+% 默认蓝色学术风（加载时已应用；无操作）
+\newcommand{\sustech@palette@default}{%
+  \definecolor{sustechblue}{HTML}{2C5F7C}    % 深青蓝（主标题 / 主结构）
+  \definecolor{sustechblue2}{HTML}{3A6F8C}   % 标准学术蓝（结构线 / 层级）
+  \definecolor{sustechblue3}{HTML}{5B8FA8}   % 柔和蓝（辅助图表）
+  \definecolor{sustechbluelt}{HTML}{D6E2EA}  % 极浅蓝（深底上的副标题文字）
+  \definecolor{sustechorange}{HTML}{E67E22}  % 学术橙（主强调）
+  \definecolor{sustechgold}{HTML}{F4B942}    % 柔和金黄（次强调）
+  \definecolor{sustechorlt}{HTML}{FBEBDA}    % 浅橙底（强调块体）
+  \definecolor{cardgrey}{HTML}{EAECEF}       % 浅灰（卡片背景）
+  \definecolor{bgsoft}{HTML}{F5F7F8}         % 更浅背景灰
+  \definecolor{sustechdark}{HTML}{1A3F5C}    % Gemini: headline rule / block separator
+  \definecolor{sustechlight}{HTML}{D6E2EA}   % Gemini: alert block title bg
+  \colorlet{primtext}{sustechblue3}%
+  \colorlet{emph}{sustechorange}%
+}
+
+% 实验室调研配色：复旦红主色 + 宝石红强调 + 香槟金高亮
+\newcommand{\sustech@palette@lab}{%
+  \definecolor{sustechblue}{HTML}{CC1A1A}%   复旦红（主标题 / 主结构）白字 5.6:1
+  \definecolor{sustechblue2}{HTML}{E5002B}%  亮红（结构线 / block 标题）4.8:1
+  \definecolor{sustechblue3}{HTML}{E03131}%  亮红（辅助）4.5:1
+  \definecolor{sustechbluelt}{HTML}{FFD9DE}% 极浅粉（深底上的副标题文字）
+  \definecolor{sustechorange}{HTML}{9A2515}% 宝石红 ruby（主强调；alertblock 白字 7.9:1）
+  \definecolor{sustechgold}{HTML}{E0B85C}%   香槟金（高亮底）
+  \definecolor{sustechorlt}{HTML}{FFF1DD}%   奶油底（alertblock 块体）
+  \definecolor{cardgrey}{HTML}{F1E9DA}%      暖象牙（卡片 / 隔行底）
+  \definecolor{bgsoft}{HTML}{FAF6EC}%        暖白（块体底）
+  \definecolor{sustechdark}{HTML}{9A2515}%   Gemini: headline rule / block separator
+  \definecolor{sustechlight}{HTML}{FFD9DE}%  Gemini: alert block title bg
+  \colorlet{primtext}{sustechblue3}%
+  \colorlet{emph}{sustechorange}%
+}
+
+% Bilibili 粉色配色：品牌粉 #FB7299 为主色 + 深 B站蓝强调
+\newcommand{\sustech@palette@bilibili}{%
+  \definecolor{sustechblue}{HTML}{FB7299}%   品牌粉（主标题 / 主结构）白字大标题
+  \definecolor{sustechblue2}{HTML}{E05584}%  加深粉（block 标题）白字 3.6:1
+  \definecolor{sustechblue3}{HTML}{D6457E}%  深粉（表头 / 白底主色字）白字 4.2:1
+  \definecolor{sustechbluelt}{HTML}{FFD9E4}% 极浅粉（深底上的副标题文字）
+  \definecolor{sustechorange}{HTML}{007CA6}% 深 B站蓝（主强调；白字 / 白底 4.7:1）
+  \definecolor{sustechgold}{HTML}{FB7299}%   品牌粉（高亮底，45% 混合成浅粉）
+  \definecolor{sustechorlt}{HTML}{FFFFFF}%   白色底（alertblock 块体）
+  \definecolor{cardgrey}{HTML}{F2F3F5}%      B站中性灰（卡片 / 隔行底）
+  \definecolor{bgsoft}{HTML}{F7F8FA}%        浅灰白（块体底）
+  \definecolor{sustechdark}{HTML}{D6457E}%   Gemini: headline rule / block separator
+  \definecolor{sustechlight}{HTML}{FFD9E4}%  Gemini: alert block title bg
+  \colorlet{primtext}{sustechblue3}%
+  \colorlet{emph}{sustechorange}%
+}
+
+% Default scheme applied at load
+\sustech@palette@default
+
+% ====================
+% Theme (Gemini role mapping — scheme-independent, references role names)
+% ====================
+
+% Basic colors
+\setbeamercolor{palette primary}{fg=white,bg=sustechblue}
+\setbeamercolor{palette secondary}{fg=white,bg=sustechblue2}
+\setbeamercolor{palette tertiary}{bg=sustechdark,fg=white}
+\setbeamercolor{palette quaternary}{fg=black,bg=white}
+\setbeamercolor{structure}{fg=primtext}
+
+% Background
+\setbeamercolor{background canvas}{bg=bgsoft}
+
+% Headline
+\setbeamercolor{headline}{fg=white,bg=sustechblue}
+\setbeamercolor{headline rule}{bg=sustechdark}
+
+% Block
+\setbeamercolor{block title}{fg=primtext,bg=white}
+\setbeamercolor{block separator}{bg=sustechdark}
+\setbeamercolor{block body}{fg=black,bg=white}
+
+% Alert Block
+\setbeamercolor{block title alerted}{fg=sustechorange,bg=sustechlight}
+\setbeamercolor{block separator alerted}{bg=sustechorange}
+\setbeamercolor{block body alerted}{fg=black,bg=sustechlight}
+
+% Footer
+\setbeamercolor{footline}{fg=sustechgrey,bg=bgsoft}

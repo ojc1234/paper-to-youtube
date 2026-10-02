@@ -1,0 +1,12 @@
+[project]
+name = "paper-slides-to-video"
+version = "0.1.0"
+description = "Convert PDF slides to narrated MP4 video"
+requires-python = ">=3.12"
+dependencies = [
+    "edge-tts>=7",
+    "pdf2image>=1",
+    "pillow>=10",
+    "pymupdf>=1",
+    "requests>=2.34.2",
+]

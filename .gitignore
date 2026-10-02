@@ -1,0 +1,8 @@
+output/
+.venv/
+__pycache__/
+*.pyc
+web/server/data/
+web/worker/worker.env
+web/worker/stage_stats.json
+*.zip
