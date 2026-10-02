@@ -1,4 +1,4 @@
-"""paper-to-youtube 워커 (영상 만드는 Windows PC 에서 실행)
+"""paper-to-youtube 워커 (리눅스 서버 또는 Windows PC 에서 실행)
 
 서버에서 PDF 작업을 가져와 Hermes(headless)로 슬라이드 → 나레이션 → 영상 → 업로드를 시키고,
 Hermes 가 쓰는 도구 호출을 사람이 읽기 쉬운 설명 + 남은 시간으로 바꿔 서버에 실시간 전송한다.
@@ -35,6 +35,16 @@ HERMES = os.environ.get("P2Y_HERMES", shutil.which("hermes") or "hermes")
 MODEL = os.environ.get("P2Y_MODEL", "")
 PROVIDER = os.environ.get("P2Y_PROVIDER", "")
 STATS = HERE / "stage_stats.json"
+IS_WIN = os.name == "nt"
+PW_PY = os.environ.get("P2Y_PW_PYTHON", os.path.expanduser("~/.local/share/uv/tools/playwright/bin/python"))
+if IS_WIN:
+    SHELL_NOTE = "경로는 항상 `E:/...` 형식으로 넘긴다. 셸은 git-bash."
+    UPLOAD_CMD = 'PYTHONIOENCODING=utf-8 python3 "{sk}/paper-youtube-browser-upload/scripts/bsk_upload.py" "{d}" --privacy {privacy}'
+else:
+    SHELL_NOTE = ("리눅스 서버(bash)다. 절대경로를 쓴다. 메모리 3GB·CPU 2개라 렌더가 느리니 기다린다. "
+                  "`latexmk -xelatex main.tex` 는 그대로 쓰면 된다(가벼운 대체 스크립트). 파이썬 도구는 `uv run` 으로 실행한다.")
+    UPLOAD_CMD = PW_PY + ' "{sk}/paper-youtube-browser-upload/scripts/pw_upload.py" "{d}" --privacy {privacy}'
+
 
 # 단계: (키, 이름, 기본 소요 초, 진행률 시작 %)
 STAGES = [
@@ -125,7 +135,7 @@ class Reporter:
 
 # ---------------------------------------------------------------- 도구 호출 → 사람 말
 RULES = [  # (정규식, 단계, 설명)
-    (r"bsk_upload", "upload", "크롬 브라우저를 직접 조작해서 유튜브 스튜디오에 본편과 쇼츠를 올리고 있어요. 제목·설명·썸네일·태그를 채우고 게시한 뒤, 쇼츠에 본편 링크 댓글까지 답니다."),
+    (r"bsk_upload|pw_upload", "upload", "크롬 브라우저를 직접 조작해서 유튜브 스튜디오에 본편과 쇼츠를 올리고 있어요. 제목·설명·썸네일·태그를 채우고 게시한 뒤, 쇼츠에 본편 링크 댓글까지 답니다."),
     (r"youtube_meta", "meta", "유튜브 제목, 설명란(논문 정보·라이선스), 태그, 챕터 시간을 정리하고 있어요."),
     (r"make_shorts|shorts_script", "media", "쇼츠용 대본을 쓰고 60초 이내 세로 영상을 만들고 있어요."),
     (r"make_thumbnail", "media", "논문 그림이나 인상적인 슬라이드로 썸네일을 만들고 있어요."),
@@ -196,7 +206,7 @@ PROMPT = """너는 무인으로 동작하는 논문 해설 영상 제작기다. 
 ## 따라야 할 절차
 `{sk}/paper-youtube-browser-upload/SKILL.md` 를 read_file 로 읽고 그 문서의 3~6 단계(슬라이드 → 나레이션 → 본편 → 썸네일·쇼츠·챕터·youtube_meta.json → 업로드)를 그대로 수행한다.
 세부 규칙은 `{sk}/paper-to-youtube/SKILL.md` 를 참고. 키트 스킬 폴더 SK={sk}
-- 경로는 항상 `E:/...` 형식으로 넘긴다. 셸은 git-bash.
+- {shell_note}
 - slides-beamer/ 에 테마·latexmkrc·preamble_ko.tex 는 이미 복사돼 있다. main.tex 만 쓰면 된다.
 - paper.json 은 이미 있다. 라이선스를 모르면 설명란에 "원문 PDF 제공자 업로드" 라고 쓰고 그림은 출처를 단다.
 - 숫자·주장은 원문에 있는 것만. 본문 12~18장.
@@ -204,7 +214,7 @@ PROMPT = """너는 무인으로 동작하는 논문 해설 영상 제작기다. 
 - 나레이션 개수 = `slides_to_video.py plan slides-beamer/main.tex` 의 항목 수 = PDF 쪽수. `cardinality mismatch` 가 나면 plan 결과를 보고 슬라이드나 나레이션을 맞춘 뒤 다시 렌더한다.
 - 어떤 오류가 나도 원인을 고쳐서 **업로드까지 끝낸다.** 중간 보고로 멈추거나 수동 작업을 남기지 않는다.
 - 본편 렌더는 오래 걸리니 terminal timeout 을 600 으로 준다.
-- 업로드: `PYTHONIOENCODING=utf-8 python3 "{sk}/paper-youtube-browser-upload/scripts/bsk_upload.py" "{d}" --privacy {privacy}` (timeout 600)
+- 업로드(이 명령만 쓴다, SKILL.md 의 bsk 명령 대신): `{upload_cmd}` (timeout 600)
 - 끝나면 `{d}/video/upload_result.json` 에 main_url, shorts_url 이 있어야 한다.
 
 ## 진행 설명
@@ -221,7 +231,10 @@ def prepare(job, d: Path):
     tpl = SK / "paper-to-beamer" / "templates" / "sustech"
     if not (sb / "sustech-theme").exists():
         shutil.copytree(tpl / "sustech-theme", sb / "sustech-theme")
-    shutil.copy(tpl / "latexmkrc", sb)
+    rc = (tpl / "latexmkrc").read_text("utf-8")
+    if not IS_WIN:  # 리눅스 TEXINPUTS 구분자는 ':'
+        rc = rc.replace("./sustech-theme//;", "./sustech-theme//:")
+    (sb / "latexmkrc").write_text(rc, "utf-8")
     shutil.copy(SK / "paper-to-youtube" / "templates" / "preamble_ko.tex", sb)
     (d / "source.pdf").write_bytes(http("GET", f"/api/worker/{job['id']}/pdf", raw=True, timeout=120))
     code = r"""
@@ -288,7 +301,9 @@ def run_job(job):
                   if info["arxiv"] else "사용자가 직접 올린 PDF. arXiv 검색/다운로드 단계는 건너뛴다")
         tex = (f"- TeX 원본: {d.as_posix()}/paper_src/ (있으면 수식·그림은 여기서 가져온다. 그림이 .pdf 면 pdftoppm -png -r 200 -singlefile 로 변환)"
                if info.get("tex") else "")
+        upload_cmd = UPLOAD_CMD.format(sk=SK.as_posix(), d=d.as_posix(), privacy=job.get("privacy", "PUBLIC"))
         prompt = PROMPT.format(d=d.as_posix(), sk=SK.as_posix(), name=job.get("name") or "(없음)", origin=origin, tex=tex,
+                               shell_note=SHELL_NOTE, upload_cmd=upload_cmd,
                                privacy=job.get("privacy", "PUBLIC"), figs=", ".join(info["figs"]) or "없음")
         pf = d / "hermes_prompt.md"
         pf.write_text(prompt, "utf-8")

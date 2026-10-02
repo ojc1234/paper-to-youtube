@@ -1,0 +1,15 @@
+[Unit]
+Description=paper-to-youtube worker (Hermes -> slides -> video -> YouTube)
+After=network-online.target paper2yt.service
+
+[Service]
+WorkingDirectory=%DIR%/web/worker
+Environment=PATH=%HOME%/.local/bin:%HOME%/.TinyTeX/bin/x86_64-linux:/usr/local/bin:/usr/bin:/bin
+Environment=PYTHONIOENCODING=utf-8
+Environment=P2Y_WORKER_NAME=server
+ExecStart=/usr/bin/python3 -u worker.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target
