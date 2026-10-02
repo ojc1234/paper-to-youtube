@@ -174,7 +174,7 @@ async def papers(q: str):
     parts = [f'au:"{en}"', f'ti:"{en}"']
     if words:
         parts.append("(" + " AND ".join(f"all:{w}" for w in words) + ")")
-    res = await arxiv_query(" OR ".join(parts))
+    res = [dict(p) for p in await arxiv_query(" OR ".join(parts))]
     made = {v.get("arxiv_id"): v for v in videos() if v.get("arxiv_id")}
     ql = q.lower()
     for p in res:
