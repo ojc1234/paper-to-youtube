@@ -5,7 +5,8 @@
   "shorts": "https://youtube.com/shorts/a3Q-gybxh7k",
   "paper": "Bioblox 2.5D (arXiv:2204.12425)",
   "name": "오지철 생물교육 바이오블록스 단백질",
-  "created": 0
+  "created": 0,
+  "arxiv_id": "2204.12425"
  },
  {
   "title": "전자기장이 해밀턴 역학의 심플렉틱 구조가 된다 | 벨트라미-맥스웰 논문 리뷰",
@@ -13,6 +14,7 @@
   "shorts": "https://youtube.com/shorts/L-85qjeCbVU",
   "paper": "Liouville integrability of Beltrami-Maxwell fields (arXiv:2609.14242)",
   "name": "오지철 물리 전자기학 맥스웰",
-  "created": 0
+  "created": 0,
+  "arxiv_id": "2609.14242"
  }
 ]
