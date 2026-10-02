@@ -121,13 +121,24 @@ async def to_english(q: str) -> str:
     """한글 검색어는 arXiv 가 못 찾으므로 영어로 바꾼다 (실패하면 원문)."""
     if not re.search(r"[가-힣]", q):
         return q
-    try:
-        async with httpx.AsyncClient(timeout=8) as c:
+    async with httpx.AsyncClient(timeout=8, headers={"User-Agent": "curl/8.9"}) as c:
+        try:  # 1차: Google (가끔 429)
             r = await c.get("https://translate.googleapis.com/translate_a/single",
                             params={"client": "gtx", "sl": "ko", "tl": "en", "dt": "t", "q": q})
-        return "".join(s[0] for s in r.json()[0]).strip() or q
-    except Exception:
-        return q
+            if r.status_code == 200:
+                t = "".join(s[0] for s in r.json()[0]).strip()
+                if t:
+                    return t
+        except Exception:
+            pass
+        try:  # 2차: MyMemory
+            r = await c.get("https://api.mymemory.translated.net/get", params={"q": q, "langpair": "ko|en"})
+            t = (r.json().get("responseData") or {}).get("translatedText", "").strip()
+            if t and not re.search(r"[가-힣]", t):
+                return t
+        except Exception:
+            pass
+    return q
 
 
 async def arxiv_query(search_query: str, n: int = 15) -> list:
