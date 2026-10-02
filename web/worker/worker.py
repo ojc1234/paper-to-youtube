@@ -33,6 +33,7 @@ TOKEN = os.environ.get("P2Y_WORKER_TOKEN", "")
 NAME = os.environ.get("P2Y_WORKER_NAME", os.environ.get("COMPUTERNAME", "worker"))
 HERMES = os.environ.get("P2Y_HERMES", shutil.which("hermes") or "hermes")
 MODEL = os.environ.get("P2Y_MODEL", "")
+PROVIDER = os.environ.get("P2Y_PROVIDER", "")
 STATS = HERE / "stage_stats.json"
 
 # 단계: (키, 이름, 기본 소요 초, 진행률 시작 %)
@@ -260,6 +261,8 @@ def run_job(job):
         rep.ev("explain", "Hermes 에게 준 입력: ① 작업 폴더와 PDF 본문 ② 키트의 절차서(SKILL.md) 경로 ③ '질문하지 말고 끝까지, 공개로 업로드' 라는 규칙. 지금부터 Hermes 가 스스로 판단해서 도구를 호출합니다.")
         cmd = ([sys.executable] if HERMES.endswith(".py") else []) + [HERMES, "chat", "--query-file", str(pf), "--format", "stream-json", "--yolo",
                "--max-turns", "220", "-t", "terminal,file"]
+        if PROVIDER:
+            cmd += ["--provider", PROVIDER]
         if MODEL:
             cmd += ["-m", MODEL]
         stop = threading.Event()
@@ -270,6 +273,15 @@ def run_job(job):
                              encoding="utf-8", errors="replace", env=env)
         log = open(d / "hermes_stream.jsonl", "w", encoding="utf-8")
         final = ""
+        buf = ""
+
+        def flush():
+            nonlocal buf
+            txt = buf.strip()
+            buf = ""
+            if txt and not txt.startswith("RESULT"):
+                rep.ev("say", txt[:600])
+
         for line in p.stdout:
             log.write(line); log.flush()
             try:
@@ -277,6 +289,12 @@ def run_job(job):
             except Exception:
                 continue
             t = e.get("type")
+            if t == "text":  # stream-json 은 텍스트를 조각으로 보낸다 → 모아서 문장 단위로
+                buf += e.get("text", "")
+                if len(buf) > 400 or buf.rstrip().endswith(("다.", "요.", "니다.", "\n\n")):
+                    flush()
+                continue
+            flush()
             if t == "tool_use":
                 st, text, what, detail = describe(e.get("name", ""), e.get("input", {}))
                 if st:
@@ -286,12 +304,9 @@ def run_job(job):
                 rep.ev("tool", what, detail)
             elif t == "tool_result" and e.get("is_error"):
                 rep.ev("explain", "방금 단계에서 오류가 났어요. Hermes 가 원인을 보고 다시 시도합니다.")
-            elif t == "text" and e.get("text", "").strip():
-                txt = e["text"].strip()
-                if not txt.startswith("RESULT"):
-                    rep.ev("say", txt[:600])
             elif t == "result":
                 final = e.get("text", "")
+        flush()
         p.wait()
         stop.set()
         res_f = d / "video" / "upload_result.json"
