@@ -127,7 +127,9 @@ class Reporter:
     def save_stats(self):
         if self.cur >= 0:
             self.taken[KEYS[self.cur]] = time.time() - self.stage_t0
+        dflt = {k: d for k, _, d in STAGES}
         for k, v in self.taken.items():
+            v = min(v, dflt[k] * 3)  # 재시도로 한 번 길어진 값이 예측을 망치지 않게 상한
             if v > 5:
                 self.stats[k] = int(0.6 * self.stats.get(k, v) + 0.4 * v) if k in self.stats else int(v)
         STATS.write_text(json.dumps(self.stats, indent=1), "utf-8")
