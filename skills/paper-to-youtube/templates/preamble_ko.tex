@@ -5,13 +5,14 @@
 % =============================================================================
 \documentclass[aspectratio=169,10pt]{beamer}
 \usepackage{fontspec}
-% 한글 폰트: Windows 맑은 고딕 → 없으면 Noto Sans CJK KR → 나눔고딕
+% 한글 폰트: Windows 맑은 고딕 → 나눔고딕(단일 TTF) → Noto Sans CJK KR
+% (리눅스의 Noto CJK 는 TTC 묶음이라 xdvipdfmx 가 "Invalid TTC index" 로 실패할 수 있어 나눔고딕을 먼저 쓴다)
 \IfFontExistsTF{Malgun Gothic}{%
   \setsansfont{Malgun Gothic}[AutoFakeSlant=0.15]\setmainfont{Malgun Gothic}[AutoFakeSlant=0.15]%
-}{\IfFontExistsTF{Noto Sans CJK KR}{%
-  \setsansfont{Noto Sans CJK KR}[AutoFakeSlant=0.15]\setmainfont{Noto Sans CJK KR}[AutoFakeSlant=0.15]%
-}{%
+}{\IfFontExistsTF{NanumGothic}{%
   \setsansfont{NanumGothic}[AutoFakeSlant=0.15]\setmainfont{NanumGothic}[AutoFakeSlant=0.15]%
+}{%
+  \setsansfont{Noto Sans CJK KR}[AutoFakeSlant=0.15]\setmainfont{Noto Sans CJK KR}[AutoFakeSlant=0.15]%
 }}
 \usetheme{sustech}
 
