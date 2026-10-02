@@ -73,7 +73,7 @@ cp -r "$SK/paper-to-beamer/templates/sustech/sustech-theme" "$SK/paper-to-beamer
 cp "$SK/paper-to-youtube/templates/preamble_ko.tex" "$D/slides-beamer/"
 ```
 
-- `main.tex` 첫 줄 `\input{preamble_ko}`. `\bm` 을 쓰면 **바로 다음 줄에 `\usepackage{bm}`** (preamble 에 없음). 파일이 CRLF 라 `sed` 로 넣으면 실패하니 patch 도구를 쓴다.
+- `main.tex` 첫 줄 `\input{preamble_ko}`. 표지는 `\begin{frame}[plain]\titlepage\end{frame}` — `\frame{\titlepage}` 단축형은 plan 이 페이지로 못 세서 `Narration cardinality mismatch` 가 난다. `\bm` 을 쓰면 **바로 다음 줄에 `\usepackage{bm}`** (preamble 에 없음). 파일이 CRLF 라 `sed` 로 넣으면 실패하니 patch 도구를 쓴다.
 - 구성: 표지 → 한눈에 보기 → 섹션(왜 중요한가 / 배경 개념 / 핵심 아이디어 / 결과 / 생각해 볼 점(해설자 의견) / 요약) → 감사 장. 본문 12~18장.
 - 매크로: `\shl{}`, `\keyword{}`, `\hlbox{}`, `\twopane{}{}`, `callout`, `\tightgap`, `\deckgap`, `\secblurb`. 숫자·주장은 원문에 있는 것만 쓴다.
 - 빌드: `latexmk -xelatex main.tex > build.log 2>&1`, 그다음 `grep '^!' main.log`, `grep Overfull main.log` 결과가 0 이어야 한다.

@@ -198,6 +198,9 @@ PROMPT = """너는 무인으로 동작하는 논문 해설 영상 제작기다. 
 - slides-beamer/ 에 테마·latexmkrc·preamble_ko.tex 는 이미 복사돼 있다. main.tex 만 쓰면 된다.
 - paper.json 은 이미 있다. 라이선스를 모르면 설명란에 "원문 PDF 제공자 업로드" 라고 쓰고 그림은 출처를 단다.
 - 숫자·주장은 원문에 있는 것만. 본문 12~18장.
+- 표지는 반드시 `\\begin{{frame}}[plain]\\titlepage\\end{{frame}}` 로 쓴다. `\\frame{{\\titlepage}}` 단축형은 영상 엔진이 페이지로 세지 못해 나레이션 개수 불일치 오류가 난다.
+- 나레이션 개수 = `slides_to_video.py plan slides-beamer/main.tex` 의 항목 수 = PDF 쪽수. `cardinality mismatch` 가 나면 plan 결과를 보고 슬라이드나 나레이션을 맞춘 뒤 다시 렌더한다.
+- 어떤 오류가 나도 원인을 고쳐서 **업로드까지 끝낸다.** 중간 보고로 멈추거나 수동 작업을 남기지 않는다.
 - 본편 렌더는 오래 걸리니 terminal timeout 을 600 으로 준다.
 - 업로드: `PYTHONIOENCODING=utf-8 python3 "{sk}/paper-youtube-browser-upload/scripts/bsk_upload.py" "{d}" --privacy {privacy}` (timeout 600)
 - 끝나면 `{d}/video/upload_result.json` 에 main_url, shorts_url 이 있어야 한다.
