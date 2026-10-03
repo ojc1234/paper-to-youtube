@@ -87,7 +87,7 @@ const fmt=s=>{s=Math.max(0,Math.round(s));const m=Math.floor(s/60);return m?`${m
 // ---------- 검색
 let lastPapers=[],lastQ="";
 async function findPapers(){lastQ=$("#q").value.trim();$("#sr").innerHTML='<p class="sub">arXiv 에서 논문 찾는 중… (몇 초 걸려요)</p>';
-  const res=await fetch("/api/papers?q="+encodeURIComponent(lastQ));const r=await res.json();
+  const res=await fetch("api/papers?q="+encodeURIComponent(lastQ));const r=await res.json();
   if(!res.ok){$("#sr").innerHTML=`<p class="sub">${esc(r.detail||"검색 실패")}</p>`;return null}
   lastPapers=r.papers;
   const vlink=v=>`<a href="${esc(v.url)}" target="_blank" class="u">${esc(v.url)}</a>`;
@@ -102,14 +102,14 @@ async function findPapers(){lastQ=$("#q").value.trim();$("#sr").innerHTML='<p cl
   $("#sr").innerHTML=h;return r}
 async function make(i){const p=lastPapers[i];if(!p)return;
   if(!confirm(`「${p.title}」\n이 논문으로 영상을 만들어 유튜브에 공개로 올릴까요? (약 10~30분)`))return;
-  const res=await fetch("/api/jobs/arxiv",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({arxiv_id:p.arxiv_id,name:lastQ,paper:p})});
+  const res=await fetch("api/jobs/arxiv",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({arxiv_id:p.arxiv_id,name:lastQ,paper:p})});
   const j=await res.json();if(!res.ok){alert(j.detail||"실패");return}
   location.hash=j.id;watch(j.id);loadJobs();$("#jc").scrollIntoView({behavior:"smooth"})}
 $("#sf").onsubmit=e=>{e.preventDefault();findPapers()};
 $("#auto").onclick=async()=>{if(!$("#q").value.trim())return $("#q").focus();const r=await findPapers();if(!r)return;
   const i=lastPapers.findIndex(p=>!p.video);if(i<0)return alert("새로 만들 논문이 없어요 (전부 영상이 있어요)");make(i)};
 async function oldSearch(){
-  const r=await (await fetch("/api/search?q="+encodeURIComponent($("#q").value))).json();
+  const r=await (await fetch("api/search?q="+encodeURIComponent($("#q").value))).json();
   const card=(v,mine)=>{const id=(v.url.match(/(?:v=|youtu\.be\/|shorts\/)([\w-]{11})/)||[])[1];
     return `<div class="v ${mine?"mine":""}">${id?`<img src="https://i.ytimg.com/vi/${id}/mqdefault.jpg" loading="lazy">`:""}<div>
     ${mine?'<span class="badge ok">Hermes 제작</span> ':""}<a href="${esc(v.url)}" target="_blank">${esc(v.title)}</a>
@@ -129,7 +129,7 @@ pdf.onchange=()=>pick(pdf.files[0]);
 drop.addEventListener("drop",e=>pick(e.dataTransfer.files[0]));
 $("#jf").onsubmit=async e=>{e.preventDefault();$("#go").disabled=true;$("#go").textContent="올리는 중…";
   const fd=new FormData();fd.append("pdf",pdf.files[0]);fd.append("name",$("#nm").value);
-  const r=await fetch("/api/jobs",{method:"POST",body:fd});$("#go").textContent="영상 만들기";
+  const r=await fetch("api/jobs",{method:"POST",body:fd});$("#go").textContent="영상 만들기";
   if(!r.ok){alert((await r.json()).detail||"실패");$("#go").disabled=false;return}
   const j=await r.json();location.hash=j.id;watch(j.id);loadJobs()};
 
@@ -154,7 +154,7 @@ function render(){const s=state;$("#stage").textContent=s.stage||"";$("#pb").sty
 function watch(id){$("#jc").classList.remove("hidden");$("#jid").textContent=id;$("#log").innerHTML="";$("#res").classList.add("hidden");
   state={};es&&es.close();clearInterval(tipT);clearInterval(tick);
   tipT=setInterval(()=>{$("#tip").textContent=TIPS[tipI++%TIPS.length]},12000);tick=setInterval(render,1000);
-  es=new EventSource(`/api/jobs/${id}/events`);
+  es=new EventSource(`api/jobs/${id}/events`);
   es.onmessage=m=>{const e=JSON.parse(m.data);
     if(e.eta!=null){state.eta=e.eta;state.etaAt=e.t||Date.now()/1000}
     if(e.stage)state.stage=e.stage;if(e.progress!=null)state.progress=e.progress;
@@ -170,12 +170,12 @@ function watch(id){$("#jc").classList.remove("hidden");$("#jid").textContent=id;
       $("#res").classList.remove("hidden");clearInterval(tipT);loadJobs()}
     else if(e.type==="error"){state.status="error";line("err","❌ "+esc(e.text),e.t);clearInterval(tipT);loadJobs()}
     render()}}
-async function loadJobs(){const js=await (await fetch("/api/jobs")).json();
+async function loadJobs(){const js=await (await fetch("api/jobs")).json();
   $("#jl").innerHTML=js.length?js.map(j=>`<div class="row" style="justify-content:space-between;border-bottom:1px solid var(--line);padding:6px 0">
   <a href="#${j.id}" onclick="watch('${j.id}')" style="color:var(--fg)">${esc(j.name||j.filename)}</a>
   <span>${j.result?.main_url?`<a href="${esc(j.result.main_url)}" target="_blank" style="color:#7fb2ff">${esc(j.result.main_url)}</a> `:""}
   <span class="badge ${j.status==="done"?"ok":j.status==="error"?"bad":""}">${{queued:"대기",running:"진행 중",done:"완료",error:"실패"}[j.status]}</span></span></div>`).join(""):"아직 없어요"}
-async function ws(){try{const s=await (await fetch("/api/status")).json();const b=$("#ws");
+async function ws(){try{const s=await (await fetch("api/status")).json();const b=$("#ws");
   b.className="badge "+(s.worker_online?"ok":"bad");b.textContent=s.worker_online?`작업 PC 온라인 · 대기 ${s.queued}`:"작업 PC 오프라인 (올리면 켜질 때 처리돼요)"}catch{}}
 ws();setInterval(ws,10000);loadJobs();if(location.hash.length>1)watch(location.hash.slice(1));
 </script>
