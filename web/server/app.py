@@ -39,7 +39,7 @@ def videos() -> list:
 
 
 def public(j: dict) -> dict:
-    return {k: j[k] for k in ("id", "name", "filename", "status", "created", "result", "error", "eta", "stage", "progress", "paper") if k in j}
+    return {k: j[k] for k in ("id", "name", "filename", "status", "created", "result", "error", "eta", "stage", "progress", "paper", "kind") if k in j}
 
 
 def check_worker(tok: str | None):
@@ -230,6 +230,36 @@ async def create_job_arxiv(request: Request):
     return public(jobs[jid])
 
 
+@app.post("/api/jobs/music")
+async def create_job_music(request: Request):
+    """SoundCloud 주소 → 가사 자막 음악 영상. lyrics 는 선택(LRC 또는 줄글)."""
+    b = await request.json()
+    url = str(b.get("url", "")).strip().split("?")[0]
+    if not re.fullmatch(r"https?://(www\.|m\.|on\.)?soundcloud\.com/\S+", url):
+        raise HTTPException(400, "SoundCloud 곡 주소를 넣어 주세요 (https://soundcloud.com/아티스트/곡)")
+    for v in videos():
+        if v.get("source_url") == url:
+            raise HTTPException(409, f"이미 만든 영상이 있어요: {v['url']}")
+    for j in jobs.values():
+        if (j.get("music") or {}).get("url") == url and j["status"] in ("queued", "running"):
+            return public(j)
+    lyrics = str(b.get("lyrics", ""))[:20000]
+    privacy = str(b.get("privacy", "PUBLIC")).upper()
+    jid = time.strftime("%m%d%H%M") + "-" + uuid.uuid4().hex[:6]
+    jobs[jid] = {"id": jid, "kind": "music", "name": str(b.get("name", "")).strip()[:80] or url.split("soundcloud.com/")[-1],
+                 "filename": url, "privacy": privacy if privacy in ("PUBLIC", "UNLISTED", "PRIVATE") else "PUBLIC",
+                 "music": {"url": url, "lyrics": lyrics}, "status": "queued", "created": time.time(), "events": [],
+                 "eta": None, "stage": "대기 중", "progress": 0}
+    save()
+    return public(jobs[jid])
+
+
+@app.get("/api/videos")
+def list_videos(n: int = 12):
+    """만든 영상 목록 (메인 포털이 유튜브 카드를 그릴 때 씀)"""
+    return [{k: v.get(k, "") for k in ("title", "url", "shorts", "paper", "kind", "created")} for v in videos()[:max(1, min(n, 60))]]
+
+
 # ---------------------------------------------------------------- 작업 생성 / 조회
 @app.post("/api/jobs")
 async def create_job(pdf: UploadFile = File(...), name: str = Form(""), privacy: str = Form("PUBLIC")):
@@ -302,7 +332,7 @@ def worker_next(x_worker_token: str | None = Header(None), x_worker_name: str | 
             j["started"] = time.time()
             save()
             push(j["id"], {"type": "state", **public(j)})
-            return {k: j.get(k) for k in ("id", "name", "filename", "privacy", "paper")}
+            return {k: j.get(k) for k in ("id", "kind", "name", "filename", "privacy", "paper", "music")}
     return JSONResponse(None, status_code=204)
 
 
@@ -331,7 +361,8 @@ async def worker_event(jid: str, request: Request, x_worker_token: str | None = 
             pp = j.get("paper") or {}
             vs.insert(0, {"title": r.get("title", ""), "url": r["main_url"], "shorts": r.get("shorts_url", ""),
                           "paper": r.get("paper", "") or pp.get("title", ""), "arxiv_id": pp.get("arxiv_id", ""),
-                          "authors": ", ".join(pp.get("authors", [])[:6]), "name": j["name"], "created": time.time()})
+                          "authors": ", ".join(pp.get("authors", [])[:6]), "name": j["name"], "created": time.time(),
+                          "kind": j.get("kind", "paper"), "source_url": (j.get("music") or {}).get("url", "")})
             VIDEOS_FILE.write_text(json.dumps(vs, ensure_ascii=False, indent=1), "utf-8")
     elif ev.get("type") == "error":
         j["status"] = "error"

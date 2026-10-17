@@ -45,9 +45,15 @@ log "Chromium"
 "$HOME/.local/share/uv/tools/playwright/bin/playwright" install chromium --no-shell 2>&1 | tail -2 \
   || "$HOME/.local/share/uv/tools/playwright/bin/playwright" install chromium 2>&1 | tail -2
 
+log "music: yt-dlp / faster-whisper"
+uv tool install -q yt-dlp 2>/dev/null || uv tool upgrade yt-dlp || true
+W="$HOME/.local/share/p2y-whisper"
+[ -x "$W/bin/python" ] || uv venv -q --python 3.12 "$W"
+VIRTUAL_ENV="$W" uv pip install -q faster-whisper || true
+
 log "kit venvs"
 for p in paper-slides-to-video paper-to-beamer; do (cd "$KIT/skills/$p" && uv sync -q) || true; done
 
 log "check"
 echo "유튜브 로그인: 크롬에서 받은 쿠키 JSON 을 넣고  ~/.local/share/uv/tools/playwright/bin/python $KIT/skills/paper-youtube-browser-upload/scripts/pw_upload.py --import-cookies cookies.json"
-for c in uv xelatex latexmk edge-tts ffmpeg ffprobe pdftoppm hermes; do printf '%-9s ' $c; command -v $c || echo MISSING; done
+for c in uv xelatex latexmk edge-tts ffmpeg ffprobe pdftoppm yt-dlp hermes; do printf '%-9s ' $c; command -v $c || echo MISSING; done

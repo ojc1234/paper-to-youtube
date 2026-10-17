@@ -3,13 +3,13 @@
 서버에서 PDF 작업을 가져와 Hermes(headless)로 슬라이드 → 나레이션 → 영상 → 업로드를 시키고,
 Hermes 가 쓰는 도구 호출을 사람이 읽기 쉬운 설명 + 남은 시간으로 바꿔 서버에 실시간 전송한다.
 
-  set P2Y_SERVER=http://172.30.1.87:8000      (서버 주소)
+  set P2Y_SERVER=http://172.30.1.33:8000      (서버 주소)
   set P2Y_WORKER_TOKEN=...                     (서버와 같은 토큰)
   python worker.py
 
 서버로 '나가는' 요청만 하므로 이 PC 가 내부 IP/NAT 뒤에 있어도 된다.
 """
-import json, os, re, shutil, subprocess, sys, threading, time, urllib.request, urllib.error
+import json, os, re, shlex, shutil, subprocess, sys, threading, time, urllib.request, urllib.error
 from pathlib import Path
 
 KIT = Path(__file__).resolve().parents[2]            # E:/codingstudy/paper-to-youtube
@@ -74,10 +74,13 @@ def http(method, path, data=None, raw=False, timeout=30):
 
 
 class Reporter:
-    def __init__(self, jid, d: Path):
+    def __init__(self, jid, d: Path, stages=None, prefix=""):
         self.jid, self.d = jid, d
+        self.stages = stages or STAGES
+        self.keys = [s[0] for s in self.stages]
+        self.prefix = prefix  # 음악 작업은 'music.' 로 따로 학습
         self.stats = json.loads(STATS.read_text("utf-8")) if STATS.exists() else {}
-        self.dur = {k: self.stats.get(k, dflt) for k, _, dflt in STAGES}
+        self.dur = {k: self.stats.get(prefix + k, dflt) for k, _, dflt in self.stages}
         self.cur = -1
         self.stage_t0 = time.time()
         self.taken = {}
@@ -97,28 +100,28 @@ class Reporter:
         if self.cur < 0:
             return sum(self.dur.values())
         el = time.time() - self.stage_t0
-        cur_left = max(self.dur[KEYS[self.cur]] - el, 20)
-        return int(cur_left + sum(self.dur[k] for k in KEYS[self.cur + 1:]))
+        cur_left = max(self.dur[self.keys[self.cur]] - el, 20)
+        return int(cur_left + sum(self.dur[k] for k in self.keys[self.cur + 1:]))
 
     def progress(self):
         tot = sum(self.dur.values())
-        done = sum(self.dur[k] for k in KEYS[:max(self.cur, 0)])
+        done = sum(self.dur[k] for k in self.keys[:max(self.cur, 0)])
         if self.cur >= 0:
-            done += min(time.time() - self.stage_t0, self.dur[KEYS[self.cur]] * 0.95)
+            done += min(time.time() - self.stage_t0, self.dur[self.keys[self.cur]] * 0.95)
         return round(100 * done / tot, 1)
 
     def stage(self, key, text=""):
         with self.lock:
-            i = KEYS.index(key)
+            i = self.keys.index(key)
             if i <= self.cur:
                 return
             if self.cur >= 0:
-                self.taken[KEYS[self.cur]] = time.time() - self.stage_t0
-            for k in KEYS[self.cur + 1:i]:  # 건너뛴 단계
+                self.taken[self.keys[self.cur]] = time.time() - self.stage_t0
+            for k in self.keys[self.cur + 1:i]:  # 건너뛴 단계
                 self.taken.setdefault(k, 0)
             self.cur, self.stage_t0 = i, time.time()
-            name = STAGES[i][1]
-            self.send({"type": "stage", "stage": f"{i + 1}/{len(STAGES)} {name}", "text": text,
+            name = self.stages[i][1]
+            self.send({"type": "stage", "stage": f"{i + 1}/{len(self.stages)} {name}", "text": text,
                        "eta": self.eta(), "progress": self.progress()})
 
     def ev(self, typ, text, detail=None):
@@ -126,12 +129,13 @@ class Reporter:
 
     def save_stats(self):
         if self.cur >= 0:
-            self.taken[KEYS[self.cur]] = time.time() - self.stage_t0
-        dflt = {k: d for k, _, d in STAGES}
+            self.taken[self.keys[self.cur]] = time.time() - self.stage_t0
+        dflt = {k: d for k, _, d in self.stages}
         for k, v in self.taken.items():
             v = min(v, dflt[k] * 3)  # 재시도로 한 번 길어진 값이 예측을 망치지 않게 상한
+            sk = self.prefix + k
             if v > 5:
-                self.stats[k] = int(0.6 * self.stats.get(k, v) + 0.4 * v) if k in self.stats else int(v)
+                self.stats[sk] = int(0.6 * self.stats.get(sk, v) + 0.4 * v) if sk in self.stats else int(v)
         STATS.write_text(json.dumps(self.stats, indent=1), "utf-8")
 
 
@@ -293,7 +297,25 @@ print(json.dumps({'pages':doc.page_count,'title':meta.get('title') or '','author
     return info
 
 
+def run_music_job(job):
+    sys.path.insert(0, str(HERE))
+    import music
+    jid = job["id"]
+    d = OUT / f"music-{jid}"
+    rep = Reporter(jid, d, music.MUSIC_STAGES, "music.")
+    rep.send({"type": "started", "text": f"작업 PC({NAME})가 음악 영상 작업을 시작했어요.", "eta": rep.eta(), "progress": 0})
+    try:
+        up = UPLOAD_CMD.format(sk=SK.as_posix(), d=d.as_posix(), privacy=job.get("privacy", "PUBLIC"))
+        res = music.run_music(job, d, rep, shlex.split(up.replace("PYTHONIOENCODING=utf-8 ", "")))
+        rep.save_stats()
+        rep.send({"type": "done", "result": res, "eta": 0, "progress": 100, "stage": "완료"})
+    except Exception as ex:
+        rep.send({"type": "error", "text": str(ex)[:800], "stage": "실패"})
+
+
 def run_job(job):
+    if job.get("kind") == "music":
+        return run_music_job(job)
     jid = job["id"]
     d = OUT / f"web-{jid}"
     rep = Reporter(jid, d)
