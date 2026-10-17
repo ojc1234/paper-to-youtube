@@ -54,6 +54,12 @@ def index():
     return (ROOT / "static" / "index.html").read_text("utf-8")
 
 
+@app.get("/music.html", response_class=HTMLResponse)
+def music_page():
+    """음악 페이지. Caddy 가 noni.kro.kr/music/ 을 여기로 보낸다 (api 는 /music/api/... → /api/...)"""
+    return (ROOT / "static" / "music.html").read_text("utf-8")
+
+
 @app.get("/api/status")
 def status():
     alive = time.time() - worker_seen["t"] < 30
@@ -277,8 +283,9 @@ async def create_job(pdf: UploadFile = File(...), name: str = Form(""), privacy:
 
 
 @app.get("/api/jobs")
-def list_jobs():
-    return [public(j) for j in sorted(jobs.values(), key=lambda j: -j["created"])][:30]
+def list_jobs(kind: str = ""):
+    js = [j for j in jobs.values() if not kind or j.get("kind", "paper") == kind]
+    return [public(j) for j in sorted(js, key=lambda j: -j["created"])][:30]
 
 
 @app.get("/api/jobs/{jid}")

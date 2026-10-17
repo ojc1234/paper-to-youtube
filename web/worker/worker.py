@@ -124,6 +124,10 @@ class Reporter:
             self.send({"type": "stage", "stage": f"{i + 1}/{len(self.stages)} {name}", "text": text,
                        "eta": self.eta(), "progress": self.progress()})
 
+    def set_dur(self, key, sec):
+        """작업 내용을 알고 나서 단계 예상 시간을 고친다 (예: 곡 길이에 비례하는 렌더)"""
+        self.dur[key] = max(int(sec), 5)
+
     def ev(self, typ, text, detail=None):
         self.send({"type": typ, "text": text, "detail": detail, "eta": self.eta(), "progress": self.progress()})
 

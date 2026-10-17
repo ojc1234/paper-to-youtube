@@ -42,8 +42,8 @@ button:disabled{opacity:.5;cursor:default}
 </head>
 <body>
 <header>
-  <h1>📄 논문 · 🎵 음악 → <span>▶ YouTube</span></h1>
-  <div class="sub">이름(저자·주제)을 넣으면 관련 논문을 찾고, 고른 논문으로 Hermes 가 한국어 해설 영상을 만들어 유튜브에 올려 줍니다. SoundCloud 곡 주소를 넣으면 가사 자막 영상으로 올려 줘요.</div>
+  <h1>📄 논문 → <span>▶ YouTube</span></h1>
+  <div class="sub">이름(저자·주제)을 넣으면 관련 논문을 찾고, 고른 논문으로 Hermes 가 한국어 해설 영상을 만들어 유튜브에 올려 줍니다. <a href="/music/" style="color:#7fb2ff">🎵 음악 → 가사 영상은 여기</a></div>
 </header>
 <main>
   <section class="card">
@@ -62,20 +62,6 @@ button:disabled{opacity:.5;cursor:default}
         <input type="text" id="nm" placeholder="이름(선택) — 나중에 이 이름으로 검색하면 영상이 나와요">
         <button id="go" disabled>영상 만들기</button>
       </div>
-    </form>
-  </section>
-
-  <section class="card">
-    <h2>🎵 SoundCloud 곡 → 가사 영상 만들기</h2>
-    <form id="mf">
-      <div class="row"><input type="text" id="mu" placeholder="https://soundcloud.com/아티스트/곡" required>
-        <select id="mp" style="background:#0c0e14;color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:10px">
-          <option value="PUBLIC">공개</option><option value="UNLISTED">일부 공개</option><option value="PRIVATE">비공개</option></select>
-        <button id="mgo">가사 영상 만들기</button></div>
-      <details style="margin-top:10px"><summary class="sub" style="cursor:pointer">가사 직접 넣기 (선택 — 비우면 lrclib.net 싱크 가사 → 없으면 AI 받아쓰기)</summary>
-        <textarea id="ml" rows="8" placeholder="[00:12.30] 첫 줄  ← LRC 형식이면 그 시간 그대로&#10;또는 줄글 가사 (시간은 자동으로 맞춰요)"
-          style="width:100%;margin-top:8px;background:#0c0e14;color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:10px;font:14px/1.5 inherit"></textarea></details>
-      <div class="sub" style="font-size:13px;margin-top:6px">⚠️ 남의 곡을 올리면 유튜브에서 저작권 처리(수익 귀속·차단)가 될 수 있어요. 본인 곡이나 허락받은 곡을 권장합니다.</div>
     </form>
   </section>
 
@@ -147,13 +133,6 @@ $("#jf").onsubmit=async e=>{e.preventDefault();$("#go").disabled=true;$("#go").t
   if(!r.ok){alert((await r.json()).detail||"실패");$("#go").disabled=false;return}
   const j=await r.json();location.hash=j.id;watch(j.id);loadJobs()};
 
-// ---------- 음악
-$("#mf").onsubmit=async e=>{e.preventDefault();const b=$("#mgo");b.disabled=true;b.textContent="등록 중…";
-  const res=await fetch("api/jobs/music",{method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({url:$("#mu").value.trim(),lyrics:$("#ml").value,privacy:$("#mp").value})});
-  b.disabled=false;b.textContent="가사 영상 만들기";const j=await res.json();if(!res.ok){alert(j.detail||"실패");return}
-  location.hash=j.id;watch(j.id);loadJobs();$("#jc").scrollIntoView({behavior:"smooth"})};
-
 // ---------- 진행 상황
 const TIPS=["💡 Hermes 는 PDF 를 읽고 스스로 슬라이드 구성을 정해요. 사람이 중간에 답할 필요가 없어요.",
  "💡 슬라이드는 LaTeX(Beamer)로 만들어지고, 넘치는 글자가 없을 때까지 스스로 고칩니다.",
@@ -192,7 +171,7 @@ function watch(id){$("#jc").classList.remove("hidden");$("#jid").textContent=id;
       $("#res").classList.remove("hidden");clearInterval(tipT);loadJobs()}
     else if(e.type==="error"){state.status="error";line("err","❌ "+esc(e.text),e.t);clearInterval(tipT);loadJobs()}
     render()}}
-async function loadJobs(){const js=await (await fetch("api/jobs")).json();
+async function loadJobs(){const js=await (await fetch("api/jobs?kind=paper")).json();
   $("#jl").innerHTML=js.length?js.map(j=>`<div class="row" style="justify-content:space-between;border-bottom:1px solid var(--line);padding:6px 0">
   <a href="#${j.id}" onclick="watch('${j.id}')" style="color:var(--fg)">${j.kind==="music"?"🎵 ":"📄 "}${esc(j.name||j.filename)}</a>
   <span>${j.result?.main_url?`<a href="${esc(j.result.main_url)}" target="_blank" style="color:#7fb2ff">${esc(j.result.main_url)}</a> `:""}

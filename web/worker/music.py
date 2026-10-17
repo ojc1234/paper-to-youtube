@@ -126,6 +126,8 @@ def get_lyrics(job_lyrics: str, meta: dict, d: Path, rep) -> tuple:
         return parse_lrc(txt), "직접 입력 (LRC)"
     if txt:
         rep.ev("explain", "직접 넣어 주신 가사에 시간이 없어서, 노래에서 목소리가 나오는 구간을 받아쓰기로 찾아 줄마다 시간을 맞춥니다.")
+        if hasattr(rep, "set_dur"):
+            rep.set_dur("lyrics", (meta["duration"] or 240) * 1.2)
         lines = [l.strip() for l in txt.splitlines() if l.strip()]
         return align_plain(lines, whisper(meta, d), meta["duration"]), "직접 입력 (자동 싱크)"
     rep.ev("explain", f"lrclib.net 에서 「{meta['artist']} - {meta['title']}」 의 싱크 가사를 찾는 중이에요.")
@@ -134,6 +136,9 @@ def get_lyrics(job_lyrics: str, meta: dict, d: Path, rep) -> tuple:
         rep.ev("explain", f"싱크 가사를 찾았어요: {src}, {sum(1 for _, t in lrc if t)}줄.")
         return lrc, src
     rep.ev("explain", "공개 가사 DB 에 없어요. faster-whisper 로 노래를 직접 받아 적어서 가사를 만듭니다 (몇 분 걸려요).")
+    if hasattr(rep, "set_dur"):
+        rep.set_dur("lyrics", (meta["duration"] or 240) * 1.2)
+        rep.ev("explain", "받아쓰기 시간을 반영해 남은 시간을 다시 계산했어요.")
     segs = whisper(meta, d)
     if segs:
         return [(s["start"], s["text"]) for s in segs] + [(segs[-1]["end"], "")], "자동 받아쓰기 (faster-whisper, 틀릴 수 있음)"
@@ -248,6 +253,10 @@ def run_music(job: dict, d: Path, rep, upload_cmd: list):
     rep.stage("download", "SoundCloud 에서 음원과 앨범아트를 받는 중")
     meta = download(url, d)
     (d / "music.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), "utf-8")
+    dur = meta["duration"] or 240
+    if hasattr(rep, "set_dur"):  # 곡 길이로 남은 시간 다시 계산 (서버 2코어: 렌더 ≈ 곡 길이, 받아쓰기 ≈ 1.2배)
+        rep.set_dur("render", dur * 1.0 + 15)
+        rep.set_dur("lyrics", 8 if (m.get("lyrics") or "").strip() and TAG.search(m.get("lyrics", "")) else 15)
     rep.ev("explain", f"「{meta['artist']} - {meta['title']}」 ({int(meta['duration'] // 60)}분 {int(meta['duration'] % 60)}초) 을 받았어요."
            + ("" if meta["cover"] else " 앨범아트가 없어서 그라데이션 배경을 씁니다."))
     rep.stage("lyrics")
